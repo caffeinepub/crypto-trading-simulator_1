@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "BricolageGrotesque";
+  src: url("/assets/fonts/BricolageGrotesque.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 200 800;
+}
+
+@font-face {
+  font-family: "Satoshi";
+  src: url("/assets/fonts/Satoshi.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 300 700;
+}
+
+@font-face {
+  font-family: "GeistMono";
+  src: url("/assets/fonts/GeistMono.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 100 900;
+}
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+    /* Light mode (unused - app is dark-only) */
+    --background: 0.12 0.012 240;
+    --foreground: 0.95 0.01 240;
+    --card: 0.16 0.015 240;
+    --card-foreground: 0.95 0.01 240;
+    --popover: 0.18 0.016 240;
+    --popover-foreground: 0.95 0.01 240;
+    --primary: 0.82 0.18 168;
+    --primary-foreground: 0.12 0.012 240;
+    --secondary: 0.22 0.02 240;
+    --secondary-foreground: 0.95 0.01 240;
+    --muted: 0.22 0.018 240;
+    --muted-foreground: 0.62 0.025 240;
+    --accent: 0.82 0.18 168;
+    --accent-foreground: 0.12 0.012 240;
+    --destructive: 0.62 0.22 22;
+    --destructive-foreground: 0.98 0.005 0;
+    --border: 0.28 0.02 240;
+    --input: 0.28 0.02 240;
+    --ring: 0.82 0.18 168;
+    --chart-1: 0.82 0.18 168;
+    --chart-2: 0.62 0.22 22;
+    --chart-3: 0.72 0.18 145;
+    --chart-4: 0.68 0.15 220;
+    --chart-5: 0.75 0.16 60;
+    --sidebar: 0.14 0.014 240;
+    --sidebar-foreground: 0.95 0.01 240;
+    --sidebar-primary: 0.82 0.18 168;
+    --sidebar-primary-foreground: 0.12 0.012 240;
+    --sidebar-accent: 0.22 0.02 240;
+    --sidebar-accent-foreground: 0.95 0.01 240;
+    --sidebar-border: 0.28 0.02 240;
+    --sidebar-ring: 0.82 0.18 168;
+    /* Custom semantic tokens */
+    --coin-mint: 0.82 0.18 168;
+    --coin-green: 0.72 0.18 145;
+    --coin-red: 0.62 0.22 22;
+    --coin-surface: 0.16 0.015 240;
+    --coin-surface-2: 0.19 0.016 240;
+    --coin-border: 0.28 0.02 240;
+  }
+
+  .dark {
+    --background: 0.12 0.012 240;
+    --foreground: 0.95 0.01 240;
+    --card: 0.16 0.015 240;
+    --card-foreground: 0.95 0.01 240;
+    --popover: 0.18 0.016 240;
+    --popover-foreground: 0.95 0.01 240;
+    --primary: 0.82 0.18 168;
+    --primary-foreground: 0.12 0.012 240;
+    --secondary: 0.22 0.02 240;
+    --secondary-foreground: 0.95 0.01 240;
+    --muted: 0.22 0.018 240;
+    --muted-foreground: 0.62 0.025 240;
+    --accent: 0.82 0.18 168;
+    --accent-foreground: 0.12 0.012 240;
+    --destructive: 0.62 0.22 22;
+    --destructive-foreground: 0.98 0.005 0;
+    --border: 0.28 0.02 240;
+    --input: 0.28 0.02 240;
+    --ring: 0.82 0.18 168;
+    --chart-1: 0.82 0.18 168;
+    --chart-2: 0.62 0.22 22;
+    --chart-3: 0.72 0.18 145;
+    --chart-4: 0.68 0.15 220;
+    --chart-5: 0.75 0.16 60;
+    --sidebar: 0.14 0.014 240;
+    --sidebar-foreground: 0.95 0.01 240;
+    --sidebar-primary: 0.82 0.18 168;
+    --sidebar-primary-foreground: 0.12 0.012 240;
+    --sidebar-accent: 0.22 0.02 240;
+    --sidebar-accent-foreground: 0.95 0.01 240;
+    --sidebar-border: 0.28 0.02 240;
+    --sidebar-ring: 0.82 0.18 168;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Satoshi", "Inter", system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .coin-mint {
+    color: oklch(var(--coin-mint));
+  }
+  .coin-green {
+    color: oklch(var(--coin-green));
+  }
+  .coin-red {
+    color: oklch(var(--coin-red));
+  }
+  .bg-coin-surface {
+    background-color: oklch(var(--coin-surface));
+  }
+  .bg-coin-surface-2 {
+    background-color: oklch(var(--coin-surface-2));
+  }
+  .border-coin {
+    border-color: oklch(var(--coin-border));
+  }
+  .text-coin-mint {
+    color: oklch(var(--coin-mint));
+  }
+  .text-coin-green {
+    color: oklch(var(--coin-green));
+  }
+  .text-coin-red {
+    color: oklch(var(--coin-red));
+  }
+  .bg-coin-mint {
+    background-color: oklch(var(--coin-mint));
+  }
+  .bg-coin-green {
+    background-color: oklch(var(--coin-green));
+  }
+  .bg-coin-red {
+    background-color: oklch(var(--coin-red));
+  }
+  .ticker-scroll {
+    animation: ticker 30s linear infinite;
+  }
+  @keyframes ticker {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+  .glow-mint {
+    box-shadow: 0 0 20px oklch(var(--coin-mint) / 0.15);
+  }
+  .gradient-dark {
+    background: linear-gradient(
+      135deg,
+      oklch(0.12 0.012 240) 0%,
+      oklch(0.1 0.018 220) 100%
+    );
+  }
+}
