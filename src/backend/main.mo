@@ -1,17 +1,5 @@
-import Map "mo:core/Map";
-import Blob "mo:core/Blob";
-import Text "mo:core/Text";
-import Iter "mo:core/Iter";
-import List "mo:core/List";
-import Time "mo:core/Time";
-import Array "mo:core/Array";
-import Order "mo:core/Order";
-import Int "mo:core/Int";
-import Nat "mo:core/Nat";
 import Runtime "mo:core/Runtime";
-import Float "mo:core/Float";
 import Principal "mo:core/Principal";
-import OutCall "http-outcalls/outcall";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import UserApproval "user-approval/approval";
@@ -23,6 +11,24 @@ actor {
 
   // COMPONENT: Approval-based user management
   let approvalState = UserApproval.initState(accessControlState);
+
+  // Check if any admin has been assigned yet
+  public query func hasAnyAdmin() : async Bool {
+    accessControlState.adminAssigned;
+  };
+
+  // Claim admin rights -- only works if no admins exist yet (first-time setup)
+  public shared ({ caller }) func claimAdmin() : async Bool {
+    if (accessControlState.adminAssigned) {
+      return false; // Admin already exists, cannot claim
+    };
+    if (caller.isAnonymous()) {
+      return false;
+    };
+    // Use initialize with matching tokens so the caller becomes admin
+    AccessControl.initialize(accessControlState, caller, "setup", "setup");
+    true;
+  };
 
   // COMPONENT: Approval check
   public query ({ caller }) func isCallerApproved() : async Bool {

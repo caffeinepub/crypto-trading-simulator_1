@@ -39,4 +39,10 @@ export interface PortfolioState {
   trades: Trade[];
 }
 
-export type AppView = "landing" | "kyc" | "payment" | "dashboard" | "admin";
+export type AppView =
+  | "landing"
+  | "kyc"
+  | "payment"
+  | "dashboard"
+  | "admin"
+  | "claim-admin";

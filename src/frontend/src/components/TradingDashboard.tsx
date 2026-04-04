@@ -11,7 +11,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ArrowUpDown, TrendingDown, TrendingUp } from "lucide-react";
 import { motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { CRYPTO_ASSETS, generateOHLC } from "../data/cryptoAssets";
 import { useTradingState } from "../hooks/useTradingState";
 import { AdminPanel } from "./AdminPanel";
@@ -36,6 +36,10 @@ export function TradingDashboard({
   const [selectedSymbol, setSelectedSymbol] = useState("BTC");
   const [timeframe, setTimeframe] = useState("1H");
   const [showAdmin, setShowAdmin] = useState(false);
+  const [activeSection, setActiveSection] = useState<"dashboard" | "referral">(
+    "dashboard",
+  );
+  const referralRef = useRef<HTMLDivElement>(null);
 
   const { portfolio, executeBuy, executeSell } = useTradingState();
 
@@ -45,6 +49,34 @@ export function TradingDashboard({
   }, [selectedSymbol]);
 
   const selectedAsset = CRYPTO_ASSETS.find((a) => a.symbol === selectedSymbol);
+
+  const handleSelectCrypto = (symbol: string) => {
+    setSelectedSymbol(symbol);
+    setActiveSection("dashboard");
+    // Scroll to trade panel on mobile
+    setTimeout(() => {
+      const tradePanelEl = document.getElementById("trade-panel-section");
+      if (tradePanelEl) {
+        tradePanelEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }, 100);
+  };
+
+  const handleNavSelect = (section: string) => {
+    if (section === "Referral") {
+      setActiveSection("referral");
+      setTimeout(() => {
+        if (referralRef.current) {
+          referralRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }, 50);
+    } else {
+      setActiveSection("dashboard");
+    }
+  };
 
   if (showAdmin && isAdmin) {
     return <AdminPanel onGoToDashboard={() => setShowAdmin(false)} />;
@@ -58,6 +90,8 @@ export function TradingDashboard({
         approvalStatus="Admin Approval Pending"
         onToggleAdmin={() => setShowAdmin(!showAdmin)}
         showingAdmin={showAdmin}
+        onNavSelect={handleNavSelect}
+        activeNav={activeSection === "referral" ? "Referral" : "Dashboard"}
       />
 
       <main className="flex-1 px-4 lg:px-6 py-5">
@@ -229,10 +263,21 @@ export function TradingDashboard({
 
             {/* Trade Panel */}
             <motion.div
+              id="trade-panel-section"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25, duration: 0.5 }}
             >
+              <div className="mb-2 px-1 text-xs text-muted-foreground">
+                Trading:{" "}
+                <span
+                  className="font-bold"
+                  style={{ color: "oklch(0.82 0.18 168)" }}
+                >
+                  {selectedSymbol}
+                </span>{" "}
+                &mdash; select a different coin from the list on the right
+              </div>
               <TradePanel
                 selectedSymbol={selectedSymbol}
                 portfolio={portfolio}
@@ -249,10 +294,13 @@ export function TradingDashboard({
             transition={{ delay: 0.35, duration: 0.5 }}
             className="space-y-5"
           >
-            <ReferralSystem />
+            {/* Referral System - always visible */}
+            <div ref={referralRef}>
+              <ReferralSystem />
+            </div>
             <TopCryptos
               selectedSymbol={selectedSymbol}
-              onSelect={setSelectedSymbol}
+              onSelect={handleSelectCrypto}
             />
           </motion.div>
         </div>

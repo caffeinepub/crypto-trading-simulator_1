@@ -15,6 +15,7 @@ export function useIsAdmin() {
       return actor.isCallerAdmin();
     },
     enabled: !!actor && !isFetching,
+    staleTime: 0,
   });
 }
 
@@ -27,6 +28,7 @@ export function useIsApproved() {
       return actor.isCallerApproved();
     },
     enabled: !!actor && !isFetching,
+    staleTime: 0,
   });
 }
 
@@ -51,6 +53,7 @@ export function useListApprovals() {
       return actor.listApprovals();
     },
     enabled: !!actor && !isFetching,
+    staleTime: 0,
   });
 }
 
@@ -85,6 +88,38 @@ export function useSetApproval() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["isApproved"] });
+    },
+  });
+}
+
+export function useHasAnyAdmin() {
+  const { actor, isFetching } = useActor();
+  return useQuery<boolean>({
+    queryKey: ["hasAnyAdmin"],
+    queryFn: async () => {
+      if (!actor) return true; // assume admin exists if not connected
+      return actor.hasAnyAdmin();
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 0,
+  });
+}
+
+export function useClaimAdmin() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Not connected");
+      return actor.claimAdmin();
+    },
+    onSuccess: () => {
+      // Invalidate all auth-related queries so the app re-routes correctly
+      queryClient.invalidateQueries({ queryKey: ["isAdmin"] });
+      queryClient.invalidateQueries({ queryKey: ["hasAnyAdmin"] });
+      queryClient.invalidateQueries({ queryKey: ["isApproved"] });
+      queryClient.invalidateQueries({ queryKey: ["userRole"] });
     },
   });
 }

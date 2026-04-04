@@ -23,7 +23,9 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    claimAdmin(): Promise<boolean>;
     getCallerUserRole(): Promise<UserRole>;
+    hasAnyAdmin(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;

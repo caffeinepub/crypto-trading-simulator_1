@@ -31,6 +31,8 @@ interface HeaderProps {
   approvalStatus: string;
   onToggleAdmin: () => void;
   showingAdmin: boolean;
+  onNavSelect?: (label: string) => void;
+  activeNav?: string;
 }
 
 export function Header({
@@ -39,9 +41,10 @@ export function Header({
   approvalStatus,
   onToggleAdmin,
   showingAdmin,
+  onNavSelect,
+  activeNav = "Dashboard",
 }: HeaderProps) {
   const { clear, identity } = useInternetIdentity();
-  const [activeNav, setActiveNav] = useState("Dashboard");
   const tickerRef = useRef<HTMLDivElement>(null);
 
   const principalStr = identity?.getPrincipal().toString() ?? "";
@@ -82,7 +85,7 @@ export function Header({
               key={link.label}
               type="button"
               data-ocid="header.link"
-              onClick={() => setActiveNav(link.label)}
+              onClick={() => onNavSelect?.(link.label)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
               style={{
                 color:
@@ -153,6 +156,26 @@ export function Header({
             </Button>
           )}
 
+          {/* Referral button - always visible */}
+          <Button
+            data-ocid="header.referral_button"
+            size="sm"
+            variant="outline"
+            onClick={() => onNavSelect?.("Referral")}
+            className="h-8 px-3 text-xs border-coin"
+            style={{
+              borderColor:
+                activeNav === "Referral"
+                  ? "oklch(0.82 0.18 168 / 0.5)"
+                  : undefined,
+              color:
+                activeNav === "Referral" ? "oklch(0.82 0.18 168)" : undefined,
+            }}
+          >
+            <GitBranch className="h-3.5 w-3.5 mr-1" />
+            Referral
+          </Button>
+
           {/* Trade Now */}
           <Button
             data-ocid="header.primary_button"
@@ -162,6 +185,7 @@ export function Header({
               background: "oklch(0.82 0.18 168)",
               color: "oklch(0.12 0.012 240)",
             }}
+            onClick={() => onNavSelect?.("Dashboard")}
           >
             Trade Now
           </Button>

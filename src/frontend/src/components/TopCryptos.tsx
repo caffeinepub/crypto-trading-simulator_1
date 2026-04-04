@@ -1,4 +1,4 @@
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { ShoppingCart, TrendingDown, TrendingUp } from "lucide-react";
 import { CRYPTO_ASSETS } from "../data/cryptoAssets";
 
 interface TopCryptosProps {
@@ -20,6 +20,9 @@ export function TopCryptos({ selectedSymbol, onSelect }: TopCryptosProps) {
         }}
       >
         <h3 className="font-semibold text-sm">Top Cryptocurrencies</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Click any coin to trade
+        </p>
       </div>
 
       <div
@@ -83,9 +86,38 @@ export function TopCryptos({ selectedSymbol, onSelect }: TopCryptosProps) {
                   {asset.change24h.toFixed(2)}%
                 </div>
               </div>
+              {/* Trade indicator */}
+              {isSelected && (
+                <div
+                  className="flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded"
+                  style={{
+                    background: "oklch(0.82 0.18 168 / 0.15)",
+                    color: "oklch(0.82 0.18 168)",
+                    border: "1px solid oklch(0.82 0.18 168 / 0.3)",
+                    fontSize: 9,
+                  }}
+                >
+                  <ShoppingCart className="h-2.5 w-2.5" />
+                  TRADE
+                </div>
+              )}
             </button>
           );
         })}
+      </div>
+
+      <div
+        className="px-4 py-2.5 text-center"
+        style={{
+          background: "oklch(0.12 0.012 240)",
+          borderTop: "1px solid oklch(0.22 0.018 240)",
+        }}
+      >
+        <p className="text-xs text-muted-foreground">
+          Select a coin above, then use the{" "}
+          <span style={{ color: "oklch(0.82 0.18 168)" }}>Buy / Sell</span>{" "}
+          panel in the center
+        </p>
       </div>
     </div>
   );
