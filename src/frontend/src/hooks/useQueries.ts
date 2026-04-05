@@ -8,7 +8,11 @@ export function useSaveCompanionPreference() {
   return useMutation({
     mutationFn: async (preference: string) => {
       if (!actor) return;
-      return actor.saveCompanionPreference(preference);
+      try {
+        return await actor.saveCompanionPreference(preference);
+      } catch {
+        // silently fail - preference saved locally anyway
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companionPreference"] });
@@ -22,7 +26,12 @@ export function useGetCompanionPreference() {
     queryKey: ["companionPreference"],
     queryFn: async () => {
       if (!actor) return null;
-      return actor.getCompanionPreference();
+      try {
+        const result = await actor.getCompanionPreference();
+        return result ?? null;
+      } catch {
+        return null;
+      }
     },
     enabled: !!actor && !isFetching,
   });
@@ -33,7 +42,11 @@ export function useSaveChatHistory() {
   return useMutation({
     mutationFn: async (history: Array<Message>) => {
       if (!actor) return;
-      return actor.saveChatHistory(history);
+      try {
+        return await actor.saveChatHistory(history);
+      } catch {
+        // silently fail - chat still works in memory
+      }
     },
   });
 }
@@ -44,7 +57,11 @@ export function useGetChatHistory() {
     queryKey: ["chatHistory"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getChatHistory();
+      try {
+        return await actor.getChatHistory();
+      } catch {
+        return [];
+      }
     },
     enabled: !!actor && !isFetching,
   });

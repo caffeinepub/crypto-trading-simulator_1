@@ -32,6 +32,21 @@ function WaveformBars({ active }: { active: boolean }) {
   );
 }
 
+function ThinkingDots() {
+  return (
+    <div
+      className="flex items-center gap-1 mt-1"
+      data-ocid="call.thinking_state"
+    >
+      <span className="typing-dot w-1.5 h-1.5 rounded-full bg-neon-cyan/70" />
+      <span className="typing-dot w-1.5 h-1.5 rounded-full bg-neon-cyan/70" />
+      <span className="typing-dot w-1.5 h-1.5 rounded-full bg-neon-cyan/70" />
+    </div>
+  );
+}
+
+type CallPhase = "ringing" | "connected";
+
 export default function CallPage() {
   const navigate = useNavigate();
   const companion = getCompanionFromStorage();
@@ -41,9 +56,13 @@ export default function CallPage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [subtitle, setSubtitle] = useState("");
   const [seconds, setSeconds] = useState(0);
-  const [callStarted, setCallStarted] = useState(false);
+  const [phase, setPhase] = useState<CallPhase>("ringing");
+
+  // Use ref instead of state to prevent StrictMode double-fire
+  const hasGreeted = useRef(false);
   const conversationHistory = useRef<Array<{ role: string; content: string }>>(
     [],
   );
@@ -63,21 +82,27 @@ export default function CallPage() {
       navigate({ to: "/select" });
       return;
     }
-    if (callStarted) return;
-    setCallStarted(true);
+    if (hasGreeted.current) return;
+    hasGreeted.current = true;
+
+    // Switch from ringing to connected after 1.5s
+    const ringTimer = setTimeout(() => setPhase("connected"), 1500);
     timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+
     const greeting =
       "Hey! It's so good to hear from you. How are you doing today?";
     conversationHistory.current.push({ role: "assistant", content: greeting });
-    setTimeout(() => speakText(greeting, companion), 800);
+    setTimeout(() => speakText(greeting, companion), 2000);
+
     return () => {
+      clearTimeout(ringTimer);
       if (timerRef.current) clearInterval(timerRef.current);
       stop();
     };
-  }, [callStarted, companion, navigate, speakText, stop]);
+  }, [companion, navigate, speakText, stop]);
 
   const handleMicPress = useCallback(() => {
-    if (!companion || isSpeaking) return;
+    if (!companion || isSpeaking || isThinking) return;
     if (isListening) {
       stopListening();
       setIsListening(false);
@@ -93,6 +118,7 @@ export default function CallPage() {
       async (transcript) => {
         setIsListening(false);
         setSubtitle(`You: ${transcript}`);
+        setIsThinking(true);
         conversationHistory.current.push({ role: "user", content: transcript });
         try {
           const aiText = await getAIResponse(
@@ -105,8 +131,10 @@ export default function CallPage() {
             role: "assistant",
             content: aiText,
           });
+          setIsThinking(false);
           speakText(aiText, companion);
         } catch {
+          setIsThinking(false);
           speakText("I missed that \u2014 could you say it again?", companion);
         }
       },
@@ -120,6 +148,7 @@ export default function CallPage() {
     isAvailable,
     isListening,
     isSpeaking,
+    isThinking,
     speakText,
     startListening,
     stopListening,
@@ -138,6 +167,14 @@ export default function CallPage() {
     return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   };
 
+  const getStatusText = () => {
+    if (phase === "ringing") return "Ringing...";
+    if (isSpeaking) return "Speaking...";
+    if (isListening) return "Listening...";
+    if (isThinking) return "Thinking...";
+    return "Connected";
+  };
+
   if (!companion) return null;
 
   return (
@@ -152,7 +189,22 @@ export default function CallPage() {
         <p className="text-muted-neon text-sm uppercase tracking-widest">
           AI Voice Call
         </p>
-        <p className="text-white/50 text-sm font-mono">{formatTime(seconds)}</p>
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={getStatusText()}
+            className={`text-sm font-mono ${
+              phase === "connected" ? "text-neon-cyan" : "text-white/50"
+            }`}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.25 }}
+            data-ocid="call.status.panel"
+          >
+            {getStatusText()}
+          </motion.p>
+        </AnimatePresence>
+        <p className="text-white/30 text-xs font-mono">{formatTime(seconds)}</p>
       </div>
 
       {/* Avatar */}
@@ -160,11 +212,24 @@ export default function CallPage() {
         <motion.div
           className={`w-36 h-36 rounded-full bg-gradient-to-br ${
             companion.color
-          } overflow-hidden ${isSpeaking ? "ring-pulse-speaking" : "ring-pulse"}`}
-          animate={isSpeaking ? { scale: [1, 1.04, 1] } : { scale: 1 }}
+          } overflow-hidden ${
+            isSpeaking
+              ? "ring-pulse-speaking"
+              : phase === "ringing"
+                ? "ring-pulse"
+                : "ring-pulse"
+          }`}
+          animate={
+            phase === "ringing"
+              ? { scale: [1, 1.06, 1] }
+              : isSpeaking
+                ? { scale: [1, 1.04, 1] }
+                : { scale: 1 }
+          }
           transition={{
-            duration: 0.8,
-            repeat: isSpeaking ? Number.POSITIVE_INFINITY : 0,
+            duration: phase === "ringing" ? 1.2 : 0.8,
+            repeat:
+              phase === "ringing" || isSpeaking ? Number.POSITIVE_INFINITY : 0,
           }}
           data-ocid="call.avatar.panel"
         >
@@ -180,12 +245,18 @@ export default function CallPage() {
             </div>
           )}
         </motion.div>
+
         <div className="text-center">
           <h2 className="font-display font-bold text-2xl text-white">
             {companion.name}
           </h2>
-          <p className="text-body text-sm">{companion.personality}</p>
+          {isThinking ? (
+            <ThinkingDots />
+          ) : (
+            <p className="text-body text-sm mt-1">{companion.personality}</p>
+          )}
         </div>
+
         <WaveformBars active={isSpeaking} />
       </div>
 
@@ -207,46 +278,58 @@ export default function CallPage() {
       </AnimatePresence>
 
       {/* Controls */}
-      <div className="flex items-center gap-8">
-        <button
-          type="button"
-          onClick={() => setIsMuted((v) => !v)}
-          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-            isMuted ? "bg-white/10 border border-white/20" : "glass-card"
-          }`}
-          data-ocid="call.mute.toggle"
-        >
-          {isMuted ? (
-            <MicOff className="w-5 h-5 text-white/50" />
-          ) : (
-            <Mic className="w-5 h-5 text-white" />
-          )}
-        </button>
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex items-center gap-8">
+          <button
+            type="button"
+            onClick={() => setIsMuted((v) => !v)}
+            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+              isMuted ? "bg-white/10 border border-white/20" : "glass-card"
+            }`}
+            data-ocid="call.mute.toggle"
+          >
+            {isMuted ? (
+              <MicOff className="w-5 h-5 text-white/50" />
+            ) : (
+              <Mic className="w-5 h-5 text-white" />
+            )}
+          </button>
 
-        <button
-          type="button"
-          onClick={handleEndCall}
-          className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-neon-pink hover:bg-red-400 transition-all"
-          data-ocid="call.end.button"
-        >
-          <PhoneOff className="w-6 h-6 text-white" />
-        </button>
+          <button
+            type="button"
+            onClick={handleEndCall}
+            className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-neon-pink hover:bg-red-400 transition-all"
+            data-ocid="call.end.button"
+          >
+            <PhoneOff className="w-6 h-6 text-white" />
+          </button>
 
-        <button
-          type="button"
-          onClick={handleMicPress}
-          disabled={isSpeaking}
-          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-            isListening
-              ? "bg-red-500/80 border border-red-400 shadow-neon-pink"
-              : "glass-card"
-          } disabled:opacity-30`}
-          data-ocid="call.mic.button"
-        >
-          <Mic
-            className={`w-5 h-5 ${isListening ? "text-white" : "text-neon-cyan"}`}
-          />
-        </button>
+          <div className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={handleMicPress}
+              disabled={isSpeaking || isThinking || phase === "ringing"}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                isListening
+                  ? "bg-red-500/80 border border-red-400 shadow-neon-pink"
+                  : "glass-card"
+              } disabled:opacity-30`}
+              data-ocid="call.mic.button"
+            >
+              <Mic
+                className={`w-5 h-5 ${
+                  isListening ? "text-white" : "text-neon-cyan"
+                }`}
+              />
+            </button>
+            {!isListening &&
+              !isSpeaking &&
+              !isThinking &&
+              phase === "connected" && (
+                <span className="text-white/40 text-xs">Tap to speak</span>
+              )}
+          </div>
+        </div>
       </div>
     </div>
   );

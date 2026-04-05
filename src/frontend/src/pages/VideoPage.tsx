@@ -9,12 +9,12 @@ import { Camera, CameraOff, Mic, MicOff, PhoneOff } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const WAVEFORM_HEIGHTS = [12, 20, 28, 36, 28, 20, 12];
+const WAVEFORM_HEIGHTS = [12, 20, 28, 36, 28, 20, 12, 20, 28, 12];
 
 function WaveformBars({ active }: { active: boolean }) {
   if (!active) return null;
   return (
-    <div className="flex items-end gap-1 h-10 justify-center">
+    <div className="flex items-end gap-1.5 h-12 justify-center">
       {WAVEFORM_HEIGHTS.map((h, i) => (
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: static fixed-length array
@@ -26,6 +26,21 @@ function WaveformBars({ active }: { active: boolean }) {
     </div>
   );
 }
+
+function ThinkingDots() {
+  return (
+    <div
+      className="flex items-center gap-1.5 justify-center"
+      data-ocid="video.thinking_state"
+    >
+      <span className="typing-dot w-2 h-2 rounded-full bg-neon-cyan/70" />
+      <span className="typing-dot w-2 h-2 rounded-full bg-neon-cyan/70" />
+      <span className="typing-dot w-2 h-2 rounded-full bg-neon-cyan/70" />
+    </div>
+  );
+}
+
+type CallPhase = "ringing" | "connected";
 
 export default function VideoPage() {
   const navigate = useNavigate();
@@ -39,9 +54,13 @@ export default function VideoPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [subtitle, setSubtitle] = useState("");
   const [seconds, setSeconds] = useState(0);
-  const [callStarted, setCallStarted] = useState(false);
+  const [phase, setPhase] = useState<CallPhase>("ringing");
+
+  // Use ref instead of state to prevent StrictMode double-fire
+  const hasGreeted = useRef(false);
   const conversationHistory = useRef<Array<{ role: string; content: string }>>(
     [],
   );
@@ -85,31 +104,28 @@ export default function VideoPage() {
       navigate({ to: "/select" });
       return;
     }
-    if (callStarted) return;
-    setCallStarted(true);
+    if (hasGreeted.current) return;
+    hasGreeted.current = true;
+
+    const ringTimer = setTimeout(() => setPhase("connected"), 1500);
     timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
     startCamera();
+
     const greeting =
-      "Hi! I can see you're here with me now. You look great! How are you feeling?";
+      "Hi! I can see you're here with me now. You look amazing! How are you feeling today?";
     conversationHistory.current.push({ role: "assistant", content: greeting });
-    setTimeout(() => speakText(greeting, companion), 1000);
+    setTimeout(() => speakText(greeting, companion), 2000);
+
     return () => {
+      clearTimeout(ringTimer);
       if (timerRef.current) clearInterval(timerRef.current);
       stop();
       stopCamera();
     };
-  }, [
-    companion,
-    navigate,
-    speakText,
-    stop,
-    startCamera,
-    stopCamera,
-    callStarted,
-  ]);
+  }, [companion, navigate, speakText, stop, startCamera, stopCamera]);
 
   const handleMicPress = useCallback(() => {
-    if (!companion || isSpeaking) return;
+    if (!companion || isSpeaking || isThinking) return;
     if (isListening) {
       stopListening();
       setIsListening(false);
@@ -125,6 +141,7 @@ export default function VideoPage() {
       async (transcript) => {
         setIsListening(false);
         setSubtitle(`You: ${transcript}`);
+        setIsThinking(true);
         conversationHistory.current.push({ role: "user", content: transcript });
         try {
           const aiText = await getAIResponse(
@@ -137,8 +154,10 @@ export default function VideoPage() {
             role: "assistant",
             content: aiText,
           });
+          setIsThinking(false);
           speakText(aiText, companion);
         } catch {
+          setIsThinking(false);
           speakText("I'm here \u2014 say that again?", companion);
         }
       },
@@ -152,6 +171,7 @@ export default function VideoPage() {
     isAvailable,
     isListening,
     isSpeaking,
+    isThinking,
     speakText,
     startListening,
     stopListening,
@@ -176,6 +196,14 @@ export default function VideoPage() {
     return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   };
 
+  const getStatusText = () => {
+    if (phase === "ringing") return "Ringing...";
+    if (isSpeaking) return "Speaking...";
+    if (isListening) return "Listening...";
+    if (isThinking) return "Thinking...";
+    return "Connected";
+  };
+
   if (!companion) return null;
 
   return (
@@ -185,52 +213,124 @@ export default function VideoPage() {
         background: "linear-gradient(180deg, #06080f 0%, #0d0619 100%)",
       }}
     >
-      {/* Companion panel */}
+      {/* Companion full-portrait panel */}
       <div
-        className={`absolute inset-0 flex items-center justify-center ${
-          isSpeaking ? "ring-pulse-speaking" : ""
-        }`}
+        className="absolute inset-0 flex items-center justify-center"
         style={{
           background:
             "radial-gradient(circle at 50% 40%, oklch(0.18 0.05 296 / 0.4) 0%, transparent 60%)",
         }}
         data-ocid="video.companion.panel"
       >
-        <div
-          className={`relative w-64 h-64 md:w-80 md:h-80 rounded-full bg-gradient-to-br ${
-            companion.color
-          } overflow-hidden ${isSpeaking ? "ring-pulse-speaking" : "ring-pulse"}`}
+        {/* Portrait image - tall rectangle filling ~70% of screen height */}
+        <motion.div
+          className="relative overflow-hidden rounded-3xl shadow-2xl"
+          style={{
+            width: "min(360px, 85vw)",
+            height: "70vh",
+          }}
+          animate={
+            phase === "ringing"
+              ? { scale: [1, 1.02, 1] }
+              : isSpeaking
+                ? { scale: [1, 1.015, 1] }
+                : { scale: 1 }
+          }
+          transition={{
+            duration: phase === "ringing" ? 1.4 : 1,
+            repeat:
+              phase === "ringing" || isSpeaking ? Number.POSITIVE_INFINITY : 0,
+          }}
         >
+          {/* Glow ring effect */}
+          <div
+            className={`absolute inset-0 rounded-3xl z-10 pointer-events-none ${
+              isSpeaking
+                ? "ring-pulse-speaking"
+                : phase === "ringing"
+                  ? "ring-pulse"
+                  : "ring-pulse"
+            }`}
+          />
+
+          {/* Companion image or fallback */}
           {companion.image ? (
             <img
               src={companion.image}
               alt={companion.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-top"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-8xl font-bold text-white">
-              {companion.name[0]}
+            <div
+              className={`w-full h-full bg-gradient-to-br ${companion.color} flex items-center justify-center`}
+            >
+              <span className="text-[120px] font-bold text-white/80">
+                {companion.name[0]}
+              </span>
             </div>
           )}
-          <AnimatePresence>
-            {isSpeaking && (
-              <motion.div
-                className="absolute inset-0 flex items-end justify-center pb-6 bg-black/20"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <WaveformBars active={isSpeaking} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        <div className="absolute bottom-1/3 left-1/2 -translate-x-1/2 text-center">
-          <p className="font-display font-bold text-white text-xl drop-shadow-lg">
-            {companion.name}
-          </p>
-          <p className="text-white/50 text-xs">{formatTime(seconds)}</p>
-        </div>
+
+          {/* Bottom gradient overlay */}
+          <div
+            className="absolute bottom-0 left-0 right-0 z-20 pt-24 pb-6 px-5"
+            style={{
+              background:
+                "linear-gradient(to top, rgba(6,8,15,0.92) 0%, rgba(6,8,15,0.6) 50%, transparent 100%)",
+            }}
+          >
+            {/* Name & status */}
+            <div className="text-center mb-3">
+              <h2 className="font-display font-bold text-white text-2xl drop-shadow-lg">
+                {companion.name}
+              </h2>
+              <AnimatePresence mode="wait">
+                {isThinking ? (
+                  <motion.div
+                    key="thinking"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="mt-2"
+                  >
+                    <ThinkingDots />
+                  </motion.div>
+                ) : (
+                  <motion.p
+                    key={getStatusText()}
+                    className={`text-sm font-mono mt-1 ${
+                      phase === "connected" ? "text-neon-cyan" : "text-white/60"
+                    }`}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    transition={{ duration: 0.25 }}
+                    data-ocid="video.status.panel"
+                  >
+                    {getStatusText()}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+              <p className="text-white/30 text-xs font-mono mt-1">
+                {formatTime(seconds)}
+              </p>
+            </div>
+
+            {/* Waveform overlay when speaking */}
+            <AnimatePresence>
+              {isSpeaking && (
+                <motion.div
+                  className="flex justify-center"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <WaveformBars active={isSpeaking} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
       </div>
 
       {/* Subtitles */}
@@ -238,7 +338,7 @@ export default function VideoPage() {
         {subtitle && (
           <motion.div
             key={subtitle}
-            className="absolute bottom-36 left-1/2 -translate-x-1/2 w-[90%] max-w-md glass-card rounded-2xl px-5 py-3 text-center z-30"
+            className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-md glass-card rounded-2xl px-5 py-3 text-center z-30"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -250,8 +350,8 @@ export default function VideoPage() {
         )}
       </AnimatePresence>
 
-      {/* User camera PiP */}
-      <div className="absolute bottom-28 right-4 z-20 w-24 h-32 rounded-2xl overflow-hidden border border-white/20 bg-black shadow-glass">
+      {/* User camera PiP - bottom-right */}
+      <div className="absolute bottom-24 right-4 z-40 w-24 h-32 rounded-2xl overflow-hidden border border-white/20 bg-black shadow-glass">
         {cameraOn ? (
           <video
             ref={videoRef}
@@ -268,12 +368,12 @@ export default function VideoPage() {
       </div>
 
       {/* Controls */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-6">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-5">
         <button
           type="button"
           onClick={() => setIsMuted((v) => !v)}
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-            isMuted ? "bg-white/10" : "glass-card"
+            isMuted ? "bg-white/10 border border-white/20" : "glass-card"
           }`}
           data-ocid="video.mute.toggle"
         >
@@ -293,19 +393,31 @@ export default function VideoPage() {
           <PhoneOff className="w-6 h-6 text-white" />
         </button>
 
-        <button
-          type="button"
-          onClick={handleMicPress}
-          disabled={isSpeaking}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-            isListening ? "bg-red-500/80 border border-red-400" : "glass-card"
-          } disabled:opacity-30`}
-          data-ocid="video.mic.button"
-        >
-          <Mic
-            className={`w-5 h-5 ${isListening ? "text-white" : "text-neon-cyan"}`}
-          />
-        </button>
+        <div className="flex flex-col items-center gap-1">
+          <button
+            type="button"
+            onClick={handleMicPress}
+            disabled={isSpeaking || isThinking || phase === "ringing"}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+              isListening
+                ? "bg-red-500/80 border border-red-400 shadow-neon-pink"
+                : "glass-card"
+            } disabled:opacity-30`}
+            data-ocid="video.mic.button"
+          >
+            <Mic
+              className={`w-5 h-5 ${
+                isListening ? "text-white" : "text-neon-cyan"
+              }`}
+            />
+          </button>
+          {!isListening &&
+            !isSpeaking &&
+            !isThinking &&
+            phase === "connected" && (
+              <span className="text-white/40 text-[10px]">Tap to speak</span>
+            )}
+        </div>
 
         <button
           type="button"
