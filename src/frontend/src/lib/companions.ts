@@ -108,41 +108,38 @@ export async function getAIResponse(
     { role: "user", content: userMessage },
   ];
 
-  // Pollinations text API: POST https://text.pollinations.ai/
-  // Returns plain text when Content-Type is application/json with messages array
-  const response = await fetch("https://text.pollinations.ai/", {
+  // Use the correct OpenAI-compatible endpoint
+  const response = await fetch("https://text.pollinations.ai/openai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      messages,
       model: "openai",
-      seed: Math.floor(Math.random() * 10000),
-      jsonMode: false,
+      messages,
+      temperature: 0.9,
+      max_tokens: 200,
+      stream: false,
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`AI request failed: ${response.status}`);
+    const errText = await response.text().catch(() => "");
+    throw new Error(
+      `AI request failed: ${response.status} ${errText.slice(0, 120)}`,
+    );
   }
 
-  // Pollinations returns plain text from this endpoint
-  const raw = await response.text();
+  const json = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    content?: string;
+    text?: string;
+  };
 
-  // Guard: if it looks like JSON (starts with {), try to extract content
-  if (raw.trim().startsWith("{")) {
-    try {
-      const json = JSON.parse(raw) as {
-        choices?: Array<{ message?: { content?: string } }>;
-        content?: string;
-        text?: string;
-      };
-      const content =
-        json.choices?.[0]?.message?.content ?? json.content ?? json.text ?? raw;
-      return content.trim();
-    } catch {
-      return raw.trim();
-    }
+  const content =
+    json.choices?.[0]?.message?.content ?? json.content ?? json.text ?? "";
+
+  if (!content) {
+    throw new Error("Empty response from AI");
   }
 
-  return raw.trim();
+  return content.trim();
 }

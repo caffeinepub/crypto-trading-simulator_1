@@ -61,6 +61,7 @@ export default function CallPage() {
   const [seconds, setSeconds] = useState(0);
   const [phase, setPhase] = useState<CallPhase>("ringing");
   const [textInput, setTextInput] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const hasGreeted = useRef(false);
   const conversationHistory = useRef<Array<{ role: string; content: string }>>(
@@ -80,6 +81,10 @@ export default function CallPage() {
   const sendMessage = useCallback(
     async (message: string, comp: Companion) => {
       if (!message.trim()) return;
+      // Stop any current speech so new reply can play
+      stop();
+      setIsSpeaking(false);
+      setErrorMsg("");
       setSubtitle(`You: ${message}`);
       setIsThinking(true);
       conversationHistory.current.push({ role: "user", content: message });
@@ -96,12 +101,14 @@ export default function CallPage() {
         });
         setIsThinking(false);
         speakText(aiText, comp);
-      } catch {
+      } catch (err) {
         setIsThinking(false);
-        speakText("I missed that \u2014 could you say it again?", comp);
+        const msg = err instanceof Error ? err.message : "Network error";
+        setErrorMsg(`AI error: ${msg}`);
+        setSubtitle("");
       }
     },
-    [speakText],
+    [speakText, stop],
   );
 
   useEffect(() => {
@@ -128,7 +135,7 @@ export default function CallPage() {
   }, [companion, navigate, speakText, stop]);
 
   const handleMicPress = useCallback(() => {
-    if (!companion || isSpeaking || isThinking) return;
+    if (!companion || isThinking) return;
     if (isListening) {
       stopListening();
       setIsListening(false);
@@ -138,6 +145,9 @@ export default function CallPage() {
       setSubtitle("Type your message below");
       return;
     }
+    // Stop AI speech so user can speak
+    stop();
+    setIsSpeaking(false);
     setIsListening(true);
     setSubtitle("Listening...");
     startListening(
@@ -154,19 +164,19 @@ export default function CallPage() {
     companion,
     isAvailable,
     isListening,
-    isSpeaking,
     isThinking,
     sendMessage,
     startListening,
+    stop,
     stopListening,
   ]);
 
   const handleTextSend = useCallback(() => {
-    if (!companion || !textInput.trim() || isSpeaking || isThinking) return;
+    if (!companion || !textInput.trim() || isThinking) return;
     const msg = textInput.trim();
     setTextInput("");
     sendMessage(msg, companion);
-  }, [companion, isSpeaking, isThinking, sendMessage, textInput]);
+  }, [companion, isThinking, sendMessage, textInput]);
 
   const handleEndCall = useCallback(() => {
     stop();
@@ -185,7 +195,7 @@ export default function CallPage() {
     if (phase === "ringing") return "Ringing...";
     if (isSpeaking) return "Speaking...";
     if (isListening) return "Listening...";
-    if (isThinking) return "Thinking...";
+    if (isThinking) return "Getting response...";
     return "Connected";
   };
 
@@ -221,6 +231,11 @@ export default function CallPage() {
           </motion.p>
         </AnimatePresence>
         <p className="text-white/30 text-xs font-mono">{formatTime(seconds)}</p>
+        {errorMsg && (
+          <p className="text-red-400 text-xs max-w-xs text-center">
+            {errorMsg}
+          </p>
+        )}
       </div>
 
       {/* Avatar */}
@@ -303,13 +318,13 @@ export default function CallPage() {
               onChange={(e) => setTextInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleTextSend()}
               placeholder={`Type to ${companion.name}...`}
-              disabled={isSpeaking || isThinking}
+              disabled={isThinking}
               className="flex-1 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-white text-sm placeholder:text-white/30 outline-none focus:border-neon-cyan/60 disabled:opacity-40"
             />
             <button
               type="button"
               onClick={handleTextSend}
-              disabled={!textInput.trim() || isSpeaking || isThinking}
+              disabled={!textInput.trim() || isThinking}
               className="w-10 h-10 rounded-full bg-neon-cyan/20 border border-neon-cyan/50 flex items-center justify-center disabled:opacity-30"
             >
               <Send className="w-4 h-4 text-neon-cyan" />
@@ -349,7 +364,7 @@ export default function CallPage() {
             <button
               type="button"
               onClick={handleMicPress}
-              disabled={isSpeaking || isThinking || phase === "ringing"}
+              disabled={isThinking || phase === "ringing"}
               className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
                 isListening
                   ? "bg-red-500/80 border border-red-400 shadow-neon-pink"
@@ -367,7 +382,7 @@ export default function CallPage() {
               !isSpeaking &&
               !isThinking &&
               phase === "connected" && (
-                <span className="text-white/40 text-xs">Mic</span>
+                <span className="text-white/40 text-xs">Tap to speak</span>
               )}
           </div>
         </div>
