@@ -5,7 +5,7 @@ import {
   getCompanionFromStorage,
 } from "@/lib/companions";
 import { useNavigate } from "@tanstack/react-router";
-import { Camera, CameraOff, Mic, MicOff, PhoneOff } from "lucide-react";
+import { Camera, CameraOff, Mic, MicOff, PhoneOff, Send } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -58,6 +58,8 @@ export default function VideoPage() {
   const [subtitle, setSubtitle] = useState("");
   const [seconds, setSeconds] = useState(0);
   const [phase, setPhase] = useState<CallPhase>("ringing");
+  const [textInput, setTextInput] = useState("");
+  const [showTextInput, setShowTextInput] = useState(false);
 
   // Use ref instead of state to prevent StrictMode double-fire
   const hasGreeted = useRef(false);
@@ -73,6 +75,33 @@ export default function VideoPage() {
       speak(text, comp, () => setIsSpeaking(false));
     },
     [speak],
+  );
+
+  const sendMessage = useCallback(
+    async (message: string, comp: Companion) => {
+      if (!message.trim()) return;
+      setSubtitle(`You: ${message}`);
+      setIsThinking(true);
+      conversationHistory.current.push({ role: "user", content: message });
+      try {
+        const aiText = await getAIResponse(
+          comp,
+          conversationHistory.current.slice(0, -1),
+          message,
+          false,
+        );
+        conversationHistory.current.push({
+          role: "assistant",
+          content: aiText,
+        });
+        setIsThinking(false);
+        speakText(aiText, comp);
+      } catch {
+        setIsThinking(false);
+        speakText("I'm here \u2014 say that again?", comp);
+      }
+    },
+    [speakText],
   );
 
   const startCamera = useCallback(async () => {
@@ -132,7 +161,8 @@ export default function VideoPage() {
       return;
     }
     if (!isAvailable) {
-      setSubtitle("Voice input not supported in this browser");
+      setShowTextInput(true);
+      setSubtitle("Type your message below");
       return;
     }
     setIsListening(true);
@@ -140,30 +170,12 @@ export default function VideoPage() {
     startListening(
       async (transcript) => {
         setIsListening(false);
-        setSubtitle(`You: ${transcript}`);
-        setIsThinking(true);
-        conversationHistory.current.push({ role: "user", content: transcript });
-        try {
-          const aiText = await getAIResponse(
-            companion,
-            conversationHistory.current.slice(0, -1),
-            transcript,
-            false,
-          );
-          conversationHistory.current.push({
-            role: "assistant",
-            content: aiText,
-          });
-          setIsThinking(false);
-          speakText(aiText, companion);
-        } catch {
-          setIsThinking(false);
-          speakText("I'm here \u2014 say that again?", companion);
-        }
+        sendMessage(transcript, companion);
       },
       () => {
         setIsListening(false);
-        setSubtitle("Couldn't catch that \u2014 tap mic to retry");
+        setShowTextInput(true);
+        setSubtitle("Couldn't catch that \u2014 type your message below");
       },
     );
   }, [
@@ -172,10 +184,17 @@ export default function VideoPage() {
     isListening,
     isSpeaking,
     isThinking,
-    speakText,
+    sendMessage,
     startListening,
     stopListening,
   ]);
+
+  const handleTextSend = useCallback(() => {
+    if (!companion || !textInput.trim() || isSpeaking || isThinking) return;
+    const msg = textInput.trim();
+    setTextInput("");
+    sendMessage(msg, companion);
+  }, [companion, isSpeaking, isThinking, sendMessage, textInput]);
 
   const handleEndCall = useCallback(() => {
     stop();
@@ -338,7 +357,7 @@ export default function VideoPage() {
         {subtitle && (
           <motion.div
             key={subtitle}
-            className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-md glass-card rounded-2xl px-5 py-3 text-center z-30"
+            className="absolute bottom-36 left-1/2 -translate-x-1/2 w-[90%] max-w-md glass-card rounded-2xl px-5 py-3 text-center z-30"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -346,6 +365,37 @@ export default function VideoPage() {
             data-ocid="video.subtitles.panel"
           >
             <p className="text-white text-sm leading-relaxed">{subtitle}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Text input fallback */}
+      <AnimatePresence>
+        {showTextInput && phase === "connected" && (
+          <motion.div
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 w-[85%] max-w-md flex gap-2 z-40"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.3 }}
+          >
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleTextSend()}
+              placeholder={`Say something to ${companion.name}...`}
+              disabled={isSpeaking || isThinking}
+              className="flex-1 bg-black/60 border border-white/20 rounded-full px-4 py-2 text-white text-sm placeholder:text-white/30 outline-none focus:border-neon-cyan/60 disabled:opacity-40"
+            />
+            <button
+              type="button"
+              onClick={handleTextSend}
+              disabled={!textInput.trim() || isSpeaking || isThinking}
+              className="w-10 h-10 rounded-full bg-neon-cyan/20 border border-neon-cyan/50 flex items-center justify-center disabled:opacity-30"
+            >
+              <Send className="w-4 h-4 text-neon-cyan" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

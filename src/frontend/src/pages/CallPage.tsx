@@ -5,7 +5,7 @@ import {
   getCompanionFromStorage,
 } from "@/lib/companions";
 import { useNavigate } from "@tanstack/react-router";
-import { Mic, MicOff, PhoneOff } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Send } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -60,6 +60,8 @@ export default function CallPage() {
   const [subtitle, setSubtitle] = useState("");
   const [seconds, setSeconds] = useState(0);
   const [phase, setPhase] = useState<CallPhase>("ringing");
+  const [textInput, setTextInput] = useState("");
+  const [showTextInput, setShowTextInput] = useState(false);
 
   // Use ref instead of state to prevent StrictMode double-fire
   const hasGreeted = useRef(false);
@@ -75,6 +77,33 @@ export default function CallPage() {
       speak(text, comp, () => setIsSpeaking(false));
     },
     [speak],
+  );
+
+  const sendMessage = useCallback(
+    async (message: string, comp: Companion) => {
+      if (!message.trim()) return;
+      setSubtitle(`You: ${message}`);
+      setIsThinking(true);
+      conversationHistory.current.push({ role: "user", content: message });
+      try {
+        const aiText = await getAIResponse(
+          comp,
+          conversationHistory.current.slice(0, -1),
+          message,
+          false,
+        );
+        conversationHistory.current.push({
+          role: "assistant",
+          content: aiText,
+        });
+        setIsThinking(false);
+        speakText(aiText, comp);
+      } catch {
+        setIsThinking(false);
+        speakText("I missed that \u2014 could you say it again?", comp);
+      }
+    },
+    [speakText],
   );
 
   useEffect(() => {
@@ -109,7 +138,9 @@ export default function CallPage() {
       return;
     }
     if (!isAvailable) {
-      setSubtitle("Voice not supported in this browser");
+      // Voice not supported — show text input instead
+      setShowTextInput(true);
+      setSubtitle("Type your message below");
       return;
     }
     setIsListening(true);
@@ -117,30 +148,13 @@ export default function CallPage() {
     startListening(
       async (transcript) => {
         setIsListening(false);
-        setSubtitle(`You: ${transcript}`);
-        setIsThinking(true);
-        conversationHistory.current.push({ role: "user", content: transcript });
-        try {
-          const aiText = await getAIResponse(
-            companion,
-            conversationHistory.current.slice(0, -1),
-            transcript,
-            false,
-          );
-          conversationHistory.current.push({
-            role: "assistant",
-            content: aiText,
-          });
-          setIsThinking(false);
-          speakText(aiText, companion);
-        } catch {
-          setIsThinking(false);
-          speakText("I missed that \u2014 could you say it again?", companion);
-        }
+        sendMessage(transcript, companion);
       },
       () => {
         setIsListening(false);
-        setSubtitle("Couldn't hear you \u2014 tap mic to try again");
+        // Voice failed — silently fall back to text input
+        setShowTextInput(true);
+        setSubtitle("Couldn't hear you \u2014 type your message below");
       },
     );
   }, [
@@ -149,10 +163,17 @@ export default function CallPage() {
     isListening,
     isSpeaking,
     isThinking,
-    speakText,
+    sendMessage,
     startListening,
     stopListening,
   ]);
+
+  const handleTextSend = useCallback(() => {
+    if (!companion || !textInput.trim() || isSpeaking || isThinking) return;
+    const msg = textInput.trim();
+    setTextInput("");
+    sendMessage(msg, companion);
+  }, [companion, isSpeaking, isThinking, sendMessage, textInput]);
 
   const handleEndCall = useCallback(() => {
     stop();
@@ -179,7 +200,7 @@ export default function CallPage() {
 
   return (
     <div
-      className="h-screen flex flex-col items-center justify-between pb-12 pt-16 px-6"
+      className="h-screen flex flex-col items-center justify-between pb-6 pt-16 px-6"
       style={{
         background: "linear-gradient(180deg, #06080f 0%, #0d0619 100%)",
       }}
@@ -273,6 +294,37 @@ export default function CallPage() {
             data-ocid="call.subtitles.panel"
           >
             <p className="text-white text-sm leading-relaxed">{subtitle}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Text input fallback */}
+      <AnimatePresence>
+        {showTextInput && phase === "connected" && (
+          <motion.div
+            className="w-full max-w-sm flex gap-2"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.3 }}
+          >
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleTextSend()}
+              placeholder={`Say something to ${companion.name}...`}
+              disabled={isSpeaking || isThinking}
+              className="flex-1 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-white text-sm placeholder:text-white/30 outline-none focus:border-neon-cyan/60 disabled:opacity-40"
+            />
+            <button
+              type="button"
+              onClick={handleTextSend}
+              disabled={!textInput.trim() || isSpeaking || isThinking}
+              className="w-10 h-10 rounded-full bg-neon-cyan/20 border border-neon-cyan/50 flex items-center justify-center disabled:opacity-30"
+            >
+              <Send className="w-4 h-4 text-neon-cyan" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

@@ -10,7 +10,8 @@ type SpeechRecognitionCtor = new () => {
         results: Array<Array<{ transcript: string }>>;
       }) => void)
     | null;
-  onerror: (() => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
   start: () => void;
   stop: () => void;
 };
@@ -35,26 +36,44 @@ export function useSpeech() {
       utterance.rate = companion.speechRate;
       utterance.pitch = companion.speechPitch;
       utterance.volume = 1;
+
+      const doSpeak = () => {
+        const voices = synthRef.current?.getVoices() ?? [];
+        const preferred = voices.find((v) =>
+          companion.voiceGender === "female"
+            ? v.name.toLowerCase().includes("female") ||
+              v.name.toLowerCase().includes("woman") ||
+              v.name.includes("Samantha") ||
+              v.name.includes("Karen") ||
+              v.name.includes("Moira") ||
+              v.name.includes("Victoria")
+            : v.name.toLowerCase().includes("male") ||
+              v.name.includes("Daniel") ||
+              v.name.includes("Alex") ||
+              v.name.includes("Tom"),
+        );
+        if (preferred) utterance.voice = preferred;
+        if (onEnd) utterance.onend = onEnd;
+        try {
+          synthRef.current?.speak(utterance);
+        } catch {
+          // graceful degrade
+          onEnd?.();
+        }
+      };
+
+      // Voices may not be loaded yet — wait for them
       const voices = synthRef.current.getVoices();
-      const preferred = voices.find((v) =>
-        companion.voiceGender === "female"
-          ? v.name.toLowerCase().includes("female") ||
-            v.name.toLowerCase().includes("woman") ||
-            v.name.includes("Samantha") ||
-            v.name.includes("Karen") ||
-            v.name.includes("Moira") ||
-            v.name.includes("Victoria")
-          : v.name.toLowerCase().includes("male") ||
-            v.name.includes("Daniel") ||
-            v.name.includes("Alex") ||
-            v.name.includes("Tom"),
-      );
-      if (preferred) utterance.voice = preferred;
-      if (onEnd) utterance.onend = onEnd;
-      try {
-        synthRef.current.speak(utterance);
-      } catch {
-        // graceful degrade
+      if (voices.length > 0) {
+        doSpeak();
+      } else {
+        synthRef.current.addEventListener("voiceschanged", doSpeak, {
+          once: true,
+        });
+        // Fallback: if voiceschanged never fires, speak anyway after 500ms
+        setTimeout(() => {
+          if (!utterance.voice) doSpeak();
+        }, 500);
       }
     },
     [],
@@ -78,6 +97,7 @@ export function useSpeech() {
 
 export function useVoiceRecognition() {
   const recognitionRef = useRef<{ stop(): void } | null>(null);
+  const resultReceivedRef = useRef(false);
   const isAvailable =
     typeof window !== "undefined" &&
     !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -97,14 +117,35 @@ export function useVoiceRecognition() {
       try {
         const recognition = new SpeechRecognitionClass();
         recognitionRef.current = recognition;
+        resultReceivedRef.current = false;
+
         recognition.continuous = false;
         recognition.interimResults = false;
         recognition.lang = "en-US";
+
         recognition.onresult = (event) => {
           const transcript = event.results[0]?.[0]?.transcript ?? "";
-          if (transcript) onResult(transcript);
+          if (transcript) {
+            resultReceivedRef.current = true;
+            onResult(transcript);
+          }
         };
-        recognition.onerror = () => onError?.();
+
+        // CRITICAL: onend fires when recognition stops (whether or not a result was received)
+        // Without this, the app hangs in "Listening..." state forever
+        recognition.onend = () => {
+          if (!resultReceivedRef.current) {
+            onError?.();
+          }
+        };
+
+        recognition.onerror = (event) => {
+          // "aborted" fires when we manually call stop() — ignore that
+          if (event.error !== "aborted") {
+            onError?.();
+          }
+        };
+
         recognition.start();
       } catch {
         onError?.();
