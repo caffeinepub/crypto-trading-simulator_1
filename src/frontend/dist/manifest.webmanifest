@@ -1,0 +1,24 @@
+{
+  "name": "Heartfelt AI Companion",
+  "short_name": "Heartfelt",
+  "description": "Connect with your AI soulmate through chat, voice, and video.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#06080f",
+  "theme_color": "#06080f",
+  "icons": [
+    {
+      "src": "/assets/generated/icon-192.dim_192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/generated/icon-512.dim_512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -121,7 +121,13 @@ export default function ChatPage() {
   return (
     <div className="h-screen flex flex-col bg-dark-base">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-black/40 backdrop-blur-xl">
+      <div
+        className="flex items-center gap-3 px-4 border-b border-white/5 bg-black/40 backdrop-blur-xl"
+        style={{
+          paddingTop: "max(0.75rem, env(safe-area-inset-top, 0px))",
+          paddingBottom: "0.75rem",
+        }}
+      >
         <button
           type="button"
           onClick={() => navigate({ to: "/select" })}
@@ -264,7 +270,13 @@ export default function ChatPage() {
       </div>
 
       {/* Input bar */}
-      <div className="px-4 py-3 border-t border-white/5 bg-black/30 backdrop-blur-xl">
+      <div
+        className="px-4 border-t border-white/5 bg-black/30 backdrop-blur-xl"
+        style={{
+          paddingTop: "0.75rem",
+          paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
+        }}
+      >
         <div className="flex gap-2 items-end">
           <input
             type="text"

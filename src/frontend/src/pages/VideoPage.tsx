@@ -341,7 +341,11 @@ export default function VideoPage() {
         {subtitle && (
           <motion.div
             key={subtitle}
-            className="absolute bottom-40 left-1/2 -translate-x-1/2 w-[90%] max-w-md glass-card rounded-2xl px-5 py-3 text-center z-30"
+            className="absolute left-1/2 -translate-x-1/2 w-[90%] max-w-md glass-card rounded-2xl px-5 py-3 text-center z-30"
+            style={{
+              bottom:
+                "max(10rem, calc(env(safe-area-inset-bottom, 0px) + 8.5rem))",
+            }}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -357,7 +361,11 @@ export default function VideoPage() {
       <AnimatePresence>
         {phase === "connected" && (
           <motion.div
-            className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[85%] max-w-md flex gap-2 z-40"
+            className="absolute left-1/2 -translate-x-1/2 w-[85%] max-w-md flex gap-2 z-40"
+            style={{
+              bottom:
+                "max(7rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem))",
+            }}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
@@ -385,7 +393,12 @@ export default function VideoPage() {
       </AnimatePresence>
 
       {/* User camera PiP - bottom-right */}
-      <div className="absolute bottom-20 right-4 z-40 w-24 h-32 rounded-2xl overflow-hidden border border-white/20 bg-black shadow-glass">
+      <div
+        className="absolute right-4 z-40 w-24 h-32 rounded-2xl overflow-hidden border border-white/20 bg-black shadow-glass"
+        style={{
+          bottom: "max(5rem, calc(env(safe-area-inset-bottom, 0px) + 3.5rem))",
+        }}
+      >
         {cameraOn ? (
           <video
             ref={videoRef}
@@ -402,7 +415,10 @@ export default function VideoPage() {
       </div>
 
       {/* Controls */}
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-5">
+      <div
+        className="absolute left-1/2 -translate-x-1/2 z-50 flex items-center gap-5"
+        style={{ bottom: "max(1.25rem, env(safe-area-inset-bottom, 0px))" }}
+      >
         <button
           type="button"
           onClick={() => setIsMuted((v) => !v)}

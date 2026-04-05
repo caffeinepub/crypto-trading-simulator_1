@@ -193,9 +193,11 @@ export default function CallPage() {
 
   return (
     <div
-      className="h-screen flex flex-col items-center justify-between pb-6 pt-16 px-6"
+      className="h-screen flex flex-col items-center justify-between px-6"
       style={{
         background: "linear-gradient(180deg, #06080f 0%, #0d0619 100%)",
+        paddingTop: "max(4rem, env(safe-area-inset-top, 0px))",
+        paddingBottom: "max(1.5rem, env(safe-area-inset-bottom, 0px))",
       }}
     >
       {/* Top info */}

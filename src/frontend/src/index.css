@@ -84,20 +84,68 @@
     --text-bright: 0.96 0.005 270;
     --text-body: 0.72 0.02 270;
     --text-muted: 0.48 0.03 270;
+
+    /* Safe area insets for notched phones (iOS/Android) */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
   }
 
   * {
     @apply border-border;
+    /* Better tap behavior on touch devices */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   html {
     color-scheme: dark;
+    /* Prevent font scaling on orientation change on iOS */
+    -webkit-text-size-adjust: 100%;
+    /* Fill the whole screen including notch area */
+    height: -webkit-fill-available;
   }
 
   body {
     @apply bg-background text-foreground;
     font-family: "Figtree", "PlusJakartaSans", system-ui, sans-serif;
     background: oklch(var(--dark-base));
+    /* Smooth momentum scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent pull-to-refresh interfering with app scroll */
+    overscroll-behavior-y: none;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+
+  /* Full-screen pages (call/video) need to fill the whole viewport */
+  .h-screen {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Prevent text selection on UI elements on touch */
+  button,
+  [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+  }
+
+  /* Larger minimum touch target (44px) for accessibility */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  input,
+  textarea {
+    /* iOS zooms in on inputs smaller than 16px font -- prevent that */
+    font-size: max(16px, 1em);
+    /* Disable iOS input shadow */
+    -webkit-appearance: none;
+    appearance: none;
   }
 
   ::-webkit-scrollbar {
@@ -115,6 +163,20 @@
 @layer utilities {
   .font-display {
     font-family: "BricolageGrotesque", system-ui, sans-serif;
+  }
+
+  /* Safe area padding helpers */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right, 0px);
   }
 
   /* Neon glow utilities */
@@ -355,5 +417,13 @@
   }
   .heartbeat {
     animation: heartbeat 2s ease-in-out infinite;
+  }
+
+  /* Shadow with glass effect */
+  .shadow-glass {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  }
+  .shadow-neon-pink {
+    box-shadow: 0 4px 24px oklch(var(--neon-pink) / 0.5);
   }
 }

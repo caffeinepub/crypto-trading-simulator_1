@@ -77,7 +77,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen gradient-hero-bg text-foreground overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-xl bg-black/30">
+      <header
+        className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-xl bg-black/30"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full gradient-neon-btn flex items-center justify-center glow-violet">
