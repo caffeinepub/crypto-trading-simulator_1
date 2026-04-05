@@ -30,51 +30,69 @@ export function useSpeech() {
 
   const speak = useCallback(
     (text: string, companion: Companion, onEnd?: () => void) => {
-      if (!synthRef.current) return;
-      synthRef.current.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = companion.speechRate;
-      utterance.pitch = companion.speechPitch;
-      utterance.volume = 1;
-
-      const doSpeak = () => {
-        const voices = synthRef.current?.getVoices() ?? [];
-        const preferred = voices.find((v) =>
-          companion.voiceGender === "female"
-            ? v.name.toLowerCase().includes("female") ||
-              v.name.toLowerCase().includes("woman") ||
-              v.name.includes("Samantha") ||
-              v.name.includes("Karen") ||
-              v.name.includes("Moira") ||
-              v.name.includes("Victoria")
-            : v.name.toLowerCase().includes("male") ||
-              v.name.includes("Daniel") ||
-              v.name.includes("Alex") ||
-              v.name.includes("Tom"),
-        );
-        if (preferred) utterance.voice = preferred;
-        if (onEnd) utterance.onend = onEnd;
-        try {
-          synthRef.current?.speak(utterance);
-        } catch {
-          // graceful degrade
-          onEnd?.();
-        }
-      };
-
-      // Voices may not be loaded yet — wait for them
-      const voices = synthRef.current.getVoices();
-      if (voices.length > 0) {
-        doSpeak();
-      } else {
-        synthRef.current.addEventListener("voiceschanged", doSpeak, {
-          once: true,
-        });
-        // Fallback: if voiceschanged never fires, speak anyway after 500ms
-        setTimeout(() => {
-          if (!utterance.voice) doSpeak();
-        }, 500);
+      if (!synthRef.current) {
+        onEnd?.();
+        return;
       }
+      // Cancel any ongoing speech
+      synthRef.current.cancel();
+
+      // Small delay after cancel to avoid Chrome bug where speak() is silently ignored
+      setTimeout(() => {
+        if (!synthRef.current) {
+          onEnd?.();
+          return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = companion.speechRate;
+        utterance.pitch = companion.speechPitch;
+        utterance.volume = 1;
+        if (onEnd) utterance.onend = onEnd;
+
+        // Chrome sometimes stalls -- resume if paused
+        if (synthRef.current.paused) {
+          synthRef.current.resume();
+        }
+
+        const doSpeak = () => {
+          const voices = synthRef.current?.getVoices() ?? [];
+          const preferred = voices.find((v) =>
+            companion.voiceGender === "female"
+              ? v.name.toLowerCase().includes("female") ||
+                v.name.toLowerCase().includes("woman") ||
+                v.name.includes("Samantha") ||
+                v.name.includes("Karen") ||
+                v.name.includes("Moira") ||
+                v.name.includes("Victoria")
+              : v.name.toLowerCase().includes("male") ||
+                v.name.includes("Daniel") ||
+                v.name.includes("Alex") ||
+                v.name.includes("Tom"),
+          );
+          if (preferred) utterance.voice = preferred;
+          try {
+            synthRef.current?.speak(utterance);
+          } catch {
+            onEnd?.();
+          }
+        };
+
+        const voices = synthRef.current?.getVoices() ?? [];
+        if (voices.length > 0) {
+          doSpeak();
+        } else {
+          synthRef.current?.addEventListener("voiceschanged", doSpeak, {
+            once: true,
+          });
+          // Fallback: if voiceschanged never fires, speak after 800ms
+          setTimeout(() => {
+            if (!synthRef.current?.speaking) {
+              doSpeak();
+            }
+          }, 800);
+        }
+      }, 80);
     },
     [],
   );
@@ -97,7 +115,8 @@ export function useSpeech() {
 
 export function useVoiceRecognition() {
   const recognitionRef = useRef<{ stop(): void } | null>(null);
-  const resultReceivedRef = useRef(false);
+  // Track whether we already dispatched the result to avoid double-firing
+  const resultDispatchedRef = useRef(false);
   const isAvailable =
     typeof window !== "undefined" &&
     !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -114,34 +133,37 @@ export function useVoiceRecognition() {
         onError?.();
         return;
       }
+
       try {
         const recognition = new SpeechRecognitionClass();
         recognitionRef.current = recognition;
-        resultReceivedRef.current = false;
+        resultDispatchedRef.current = false;
 
         recognition.continuous = false;
         recognition.interimResults = false;
         recognition.lang = "en-US";
 
         recognition.onresult = (event) => {
-          const transcript = event.results[0]?.[0]?.transcript ?? "";
-          if (transcript) {
-            resultReceivedRef.current = true;
+          const transcript = event.results[0]?.[0]?.transcript?.trim() ?? "";
+          if (transcript && !resultDispatchedRef.current) {
+            resultDispatchedRef.current = true;
             onResult(transcript);
           }
         };
 
-        // CRITICAL: onend fires when recognition stops (whether or not a result was received)
-        // Without this, the app hangs in "Listening..." state forever
+        // onend fires AFTER onresult in all browsers.
+        // Only call onError if no result was received.
         recognition.onend = () => {
-          if (!resultReceivedRef.current) {
+          if (!resultDispatchedRef.current) {
+            // No transcript was received -- treat as error/timeout
             onError?.();
           }
         };
 
         recognition.onerror = (event) => {
-          // "aborted" fires when we manually call stop() — ignore that
-          if (event.error !== "aborted") {
+          // "aborted" fires when we manually call stop() -- safe to ignore
+          if (event.error !== "aborted" && !resultDispatchedRef.current) {
+            resultDispatchedRef.current = true; // prevent onend from also calling onError
             onError?.();
           }
         };

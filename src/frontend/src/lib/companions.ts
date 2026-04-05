@@ -100,20 +100,49 @@ export async function getAIResponse(
   hotTalks: boolean,
 ): Promise<string> {
   const systemPrompt = buildSystemPrompt(companion, hotTalks);
+
+  // Build the messages array
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...conversationHistory,
+    { role: "user", content: userMessage },
+  ];
+
+  // Pollinations text API: POST https://text.pollinations.ai/
+  // Returns plain text when Content-Type is application/json with messages array
   const response = await fetch("https://text.pollinations.ai/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...conversationHistory,
-        { role: "user", content: userMessage },
-      ],
+      messages,
       model: "openai",
-      seed: 42,
+      seed: Math.floor(Math.random() * 10000),
       jsonMode: false,
     }),
   });
-  if (!response.ok) throw new Error("AI request failed");
-  return response.text();
+
+  if (!response.ok) {
+    throw new Error(`AI request failed: ${response.status}`);
+  }
+
+  // Pollinations returns plain text from this endpoint
+  const raw = await response.text();
+
+  // Guard: if it looks like JSON (starts with {), try to extract content
+  if (raw.trim().startsWith("{")) {
+    try {
+      const json = JSON.parse(raw) as {
+        choices?: Array<{ message?: { content?: string } }>;
+        content?: string;
+        text?: string;
+      };
+      const content =
+        json.choices?.[0]?.message?.content ?? json.content ?? json.text ?? raw;
+      return content.trim();
+    } catch {
+      return raw.trim();
+    }
+  }
+
+  return raw.trim();
 }

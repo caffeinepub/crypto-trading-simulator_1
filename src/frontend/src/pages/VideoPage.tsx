@@ -59,9 +59,7 @@ export default function VideoPage() {
   const [seconds, setSeconds] = useState(0);
   const [phase, setPhase] = useState<CallPhase>("ringing");
   const [textInput, setTextInput] = useState("");
-  const [showTextInput, setShowTextInput] = useState(false);
 
-  // Use ref instead of state to prevent StrictMode double-fire
   const hasGreeted = useRef(false);
   const conversationHistory = useRef<Array<{ role: string; content: string }>>(
     [],
@@ -161,7 +159,6 @@ export default function VideoPage() {
       return;
     }
     if (!isAvailable) {
-      setShowTextInput(true);
       setSubtitle("Type your message below");
       return;
     }
@@ -174,7 +171,6 @@ export default function VideoPage() {
       },
       () => {
         setIsListening(false);
-        setShowTextInput(true);
         setSubtitle("Couldn't catch that \u2014 type your message below");
       },
     );
@@ -241,7 +237,7 @@ export default function VideoPage() {
         }}
         data-ocid="video.companion.panel"
       >
-        {/* Portrait image - tall rectangle filling ~70% of screen height */}
+        {/* Portrait image */}
         <motion.div
           className="relative overflow-hidden rounded-3xl shadow-2xl"
           style={{
@@ -261,18 +257,8 @@ export default function VideoPage() {
               phase === "ringing" || isSpeaking ? Number.POSITIVE_INFINITY : 0,
           }}
         >
-          {/* Glow ring effect */}
-          <div
-            className={`absolute inset-0 rounded-3xl z-10 pointer-events-none ${
-              isSpeaking
-                ? "ring-pulse-speaking"
-                : phase === "ringing"
-                  ? "ring-pulse"
-                  : "ring-pulse"
-            }`}
-          />
+          <div className="absolute inset-0 rounded-3xl z-10 pointer-events-none ring-pulse" />
 
-          {/* Companion image or fallback */}
           {companion.image ? (
             <img
               src={companion.image}
@@ -297,7 +283,6 @@ export default function VideoPage() {
                 "linear-gradient(to top, rgba(6,8,15,0.92) 0%, rgba(6,8,15,0.6) 50%, transparent 100%)",
             }}
           >
-            {/* Name & status */}
             <div className="text-center mb-3">
               <h2 className="font-display font-bold text-white text-2xl drop-shadow-lg">
                 {companion.name}
@@ -334,7 +319,6 @@ export default function VideoPage() {
               </p>
             </div>
 
-            {/* Waveform overlay when speaking */}
             <AnimatePresence>
               {isSpeaking && (
                 <motion.div
@@ -357,7 +341,7 @@ export default function VideoPage() {
         {subtitle && (
           <motion.div
             key={subtitle}
-            className="absolute bottom-36 left-1/2 -translate-x-1/2 w-[90%] max-w-md glass-card rounded-2xl px-5 py-3 text-center z-30"
+            className="absolute bottom-40 left-1/2 -translate-x-1/2 w-[90%] max-w-md glass-card rounded-2xl px-5 py-3 text-center z-30"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -369,11 +353,11 @@ export default function VideoPage() {
         )}
       </AnimatePresence>
 
-      {/* Text input fallback */}
+      {/* Text input - always visible when connected */}
       <AnimatePresence>
-        {showTextInput && phase === "connected" && (
+        {phase === "connected" && (
           <motion.div
-            className="absolute bottom-24 left-1/2 -translate-x-1/2 w-[85%] max-w-md flex gap-2 z-40"
+            className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[85%] max-w-md flex gap-2 z-40"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
@@ -384,7 +368,7 @@ export default function VideoPage() {
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleTextSend()}
-              placeholder={`Say something to ${companion.name}...`}
+              placeholder={`Type to ${companion.name}...`}
               disabled={isSpeaking || isThinking}
               className="flex-1 bg-black/60 border border-white/20 rounded-full px-4 py-2 text-white text-sm placeholder:text-white/30 outline-none focus:border-neon-cyan/60 disabled:opacity-40"
             />
@@ -401,7 +385,7 @@ export default function VideoPage() {
       </AnimatePresence>
 
       {/* User camera PiP - bottom-right */}
-      <div className="absolute bottom-24 right-4 z-40 w-24 h-32 rounded-2xl overflow-hidden border border-white/20 bg-black shadow-glass">
+      <div className="absolute bottom-20 right-4 z-40 w-24 h-32 rounded-2xl overflow-hidden border border-white/20 bg-black shadow-glass">
         {cameraOn ? (
           <video
             ref={videoRef}
@@ -418,7 +402,7 @@ export default function VideoPage() {
       </div>
 
       {/* Controls */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-5">
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-5">
         <button
           type="button"
           onClick={() => setIsMuted((v) => !v)}
@@ -465,7 +449,7 @@ export default function VideoPage() {
             !isSpeaking &&
             !isThinking &&
             phase === "connected" && (
-              <span className="text-white/40 text-[10px]">Tap to speak</span>
+              <span className="text-white/40 text-[10px]">Mic</span>
             )}
         </div>
 
