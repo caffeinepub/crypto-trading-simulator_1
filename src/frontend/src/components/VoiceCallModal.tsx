@@ -1,4 +1,4 @@
 // Legacy component - not used in current app build
-export function AdminPanel(_: { onGoToDashboard: () => void }) {
+export default function VoiceCallModal(_: { onClose: () => void }) {
   return null;
 }

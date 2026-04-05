@@ -13,6 +13,7 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const Message = IDL.Record({ 'content' : IDL.Text, 'role' : IDL.Text });
 export const ApprovalStatus = IDL.Variant({
   'pending' : IDL.Null,
   'approved' : IDL.Null,
@@ -22,17 +23,50 @@ export const UserApprovalInfo = IDL.Record({
   'status' : ApprovalStatus,
   'principal' : IDL.Principal,
 });
+export const http_header = IDL.Record({
+  'value' : IDL.Text,
+  'name' : IDL.Text,
+});
+export const http_request_result = IDL.Record({
+  'status' : IDL.Nat,
+  'body' : IDL.Vec(IDL.Nat8),
+  'headers' : IDL.Vec(http_header),
+});
+export const TransformationInput = IDL.Record({
+  'context' : IDL.Vec(IDL.Nat8),
+  'response' : http_request_result,
+});
+export const TransformationOutput = IDL.Record({
+  'status' : IDL.Nat,
+  'body' : IDL.Vec(IDL.Nat8),
+  'headers' : IDL.Vec(http_header),
+});
 
 export const idlService = IDL.Service({
+  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'claimAdmin' : IDL.Func([], [IDL.Bool], []),
+  'getAllChatHistories' : IDL.Func([], [IDL.Vec(IDL.Vec(Message))], ['query']),
+  'getAllCompanionPreferences' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+  'getAllUserChatHistories' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Vec(Message)))],
+      ['query'],
+    ),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'hasAnyAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'getChatHistory' : IDL.Func([], [IDL.Vec(Message)], ['query']),
+  'getCompanionPreference' : IDL.Func([], [IDL.Opt(IDL.Text)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
   'requestApproval' : IDL.Func([], [], []),
+  'saveChatHistory' : IDL.Func([IDL.Vec(Message)], [], []),
+  'saveCompanionPreference' : IDL.Func([IDL.Text], [], []),
   'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
+  'transform' : IDL.Func(
+      [TransformationInput],
+      [TransformationOutput],
+      ['query'],
+    ),
 });
 
 export const idlInitArgs = [];
@@ -43,6 +77,7 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const Message = IDL.Record({ 'content' : IDL.Text, 'role' : IDL.Text });
   const ApprovalStatus = IDL.Variant({
     'pending' : IDL.Null,
     'approved' : IDL.Null,
@@ -52,17 +87,51 @@ export const idlFactory = ({ IDL }) => {
     'status' : ApprovalStatus,
     'principal' : IDL.Principal,
   });
+  const http_header = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
+  const http_request_result = IDL.Record({
+    'status' : IDL.Nat,
+    'body' : IDL.Vec(IDL.Nat8),
+    'headers' : IDL.Vec(http_header),
+  });
+  const TransformationInput = IDL.Record({
+    'context' : IDL.Vec(IDL.Nat8),
+    'response' : http_request_result,
+  });
+  const TransformationOutput = IDL.Record({
+    'status' : IDL.Nat,
+    'body' : IDL.Vec(IDL.Nat8),
+    'headers' : IDL.Vec(http_header),
+  });
   
   return IDL.Service({
+    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'claimAdmin' : IDL.Func([], [IDL.Bool], []),
+    'getAllChatHistories' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Vec(Message))],
+        ['query'],
+      ),
+    'getAllCompanionPreferences' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    'getAllUserChatHistories' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Vec(Message)))],
+        ['query'],
+      ),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'hasAnyAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'getChatHistory' : IDL.Func([], [IDL.Vec(Message)], ['query']),
+    'getCompanionPreference' : IDL.Func([], [IDL.Opt(IDL.Text)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
     'requestApproval' : IDL.Func([], [], []),
+    'saveChatHistory' : IDL.Func([IDL.Vec(Message)], [], []),
+    'saveCompanionPreference' : IDL.Func([IDL.Text], [], []),
     'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
+    'transform' : IDL.Func(
+        [TransformationInput],
+        [TransformationOutput],
+        ['query'],
+      ),
   });
 };
 

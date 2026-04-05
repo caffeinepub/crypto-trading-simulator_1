@@ -1,288 +1,294 @@
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useGetChatHistory, useSaveChatHistory } from "@/hooks/useQueries";
 import {
   type ChatMessage,
-  type Companion,
-  generateResponse,
-  getWelcomeMessage,
-} from "@/lib/aiResponses";
-import { ArrowLeft, Heart, MoreVertical, Send, Trash2 } from "lucide-react";
+  getAIResponse,
+  getCompanionFromStorage,
+} from "@/lib/companions";
+import { useNavigate } from "@tanstack/react-router";
+import {
+  ArrowLeft,
+  Flame,
+  Loader2,
+  MessageCircle,
+  Phone,
+  Send,
+  Video,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-interface ChatPageProps {
-  companion: Companion;
-  onBack: () => void;
-}
-
-const STORAGE_KEY = (name: string) => `heartfelt_chat_${name.toLowerCase()}`;
-
-export default function ChatPage({ companion, onBack }: ChatPageProps) {
+export default function ChatPage() {
+  const navigate = useNavigate();
+  const companion = getCompanionFromStorage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hotTalks, setHotTalks] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const saveChatHistory = useSaveChatHistory();
+  const { data: savedHistory } = useGetChatHistory();
 
-  // Load persisted chat or set welcome message
   useEffect(() => {
-    const key = STORAGE_KEY(companion.name);
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as ChatMessage[];
-        setMessages(parsed);
-        return;
-      } catch {
-        // fall through to welcome
-      }
+    if (!companion) navigate({ to: "/select" });
+  }, [companion, navigate]);
+
+  useEffect(() => {
+    if (historyLoaded) return;
+    if (savedHistory && savedHistory.length > 0) {
+      const loaded: ChatMessage[] = savedHistory.map((m, i) => ({
+        id: String(i),
+        role: m.role === "user" ? "user" : "ai",
+        text: m.content,
+        timestamp: Date.now() - (savedHistory.length - i) * 60000,
+      }));
+      setMessages(loaded);
+      setHistoryLoaded(true);
+    } else if (savedHistory !== undefined && companion) {
+      setMessages([
+        {
+          id: "welcome",
+          role: "ai",
+          text: `Hi! I'm ${companion.name} \uD83D\uDC9C I'm so happy you're here. What's on your mind?`,
+          timestamp: Date.now(),
+        },
+      ]);
+      setHistoryLoaded(true);
     }
-    const welcome: ChatMessage = {
-      id: "welcome",
-      role: "companion",
-      text: getWelcomeMessage(companion),
-      timestamp: Date.now(),
-    };
-    setMessages([welcome]);
-  }, [companion]);
+  }, [savedHistory, companion, historyLoaded]);
 
-  // Persist chat to localStorage
-  useEffect(() => {
-    if (messages.length === 0) return;
-    localStorage.setItem(STORAGE_KEY(companion.name), JSON.stringify(messages));
-  }, [messages, companion.name]);
-
-  // Auto-scroll to bottom
+  // biome-ignore lint/correctness/useExhaustiveDependencies: bottomRef is a stable ref; messages/isLoading trigger the scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  });
+  }, [messages, isLoading]);
 
   const sendMessage = useCallback(async () => {
-    const text = input.trim();
-    if (!text || isTyping) return;
-
-    const userMsg: ChatMessage = {
-      id: `u_${Date.now()}`,
-      role: "user",
-      text,
-      timestamp: Date.now(),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
+    if (!input.trim() || !companion || isLoading) return;
+    const userText = input.trim();
     setInput("");
-    setIsTyping(true);
-
-    // Simulate typing delay (800ms - 1800ms)
-    const delay = 800 + Math.random() * 1000;
-    await new Promise((r) => setTimeout(r, delay));
-
-    const responseText = generateResponse(text, companion.personality);
-    const aiMsg: ChatMessage = {
-      id: `a_${Date.now()}`,
-      role: "companion",
-      text: responseText,
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      text: userText,
       timestamp: Date.now(),
     };
-
-    setMessages((prev) => [...prev, aiMsg]);
-    setIsTyping(false);
-  }, [input, isTyping, companion.personality]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+    setMessages((prev) => [...prev, userMsg]);
+    setIsLoading(true);
+    try {
+      const history = messages.map((m) => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: m.text,
+      }));
+      const aiText = await getAIResponse(
+        companion,
+        history,
+        userText,
+        hotTalks,
+      );
+      const aiMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        text: aiText,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => {
+        const updated = [...prev, aiMsg];
+        saveChatHistory.mutate(
+          updated.map((m) => ({
+            role: m.role === "user" ? "user" : "assistant",
+            content: m.text,
+          })),
+        );
+        return updated;
+      });
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "ai",
+          text: "I'm having a moment... give me a second \uD83D\uDC9C",
+          timestamp: Date.now(),
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [companion, hotTalks, input, isLoading, messages, saveChatHistory]);
 
-  const clearChat = () => {
-    localStorage.removeItem(STORAGE_KEY(companion.name));
-    const welcome: ChatMessage = {
-      id: "welcome",
-      role: "companion",
-      text: getWelcomeMessage(companion),
-      timestamp: Date.now(),
-    };
-    setMessages([welcome]);
-  };
-
-  const formatTime = (ts: number) => {
-    return new Date(ts).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const cardBg = {
-    pink: "bg-hf-card-pink",
-    blue: "bg-hf-card-blue",
-    peach: "bg-hf-card-peach",
-  }[companion.color];
+  if (!companion) return null;
 
   return (
-    <div
-      className="min-h-screen flex flex-col bg-hf-cream font-sans"
-      data-ocid="chat.panel"
-    >
+    <div className="h-screen flex flex-col bg-dark-base">
       {/* Header */}
-      <header className="bg-hf-peach-header shadow-xs sticky top-0 z-40">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-black/40 backdrop-blur-xl">
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/select" })}
+          className="w-9 h-9 rounded-full glass-card flex items-center justify-center"
+          data-ocid="chat.back.button"
+        >
+          <ArrowLeft className="w-4 h-4 text-white" />
+        </button>
+        <div
+          className={`w-10 h-10 rounded-full bg-gradient-to-br ${companion.color} ring-pulse flex items-center justify-center text-sm font-bold text-white overflow-hidden flex-shrink-0`}
+        >
+          {companion.image ? (
+            <img
+              src={companion.image}
+              alt={companion.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            companion.name[0]
+          )}
+        </div>
+        <div className="flex-1">
+          <p className="font-semibold text-white text-sm">{companion.name}</p>
+          <p className="text-neon-cyan text-xs">Online \u2022 AI Companion</p>
+        </div>
+        <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={onBack}
-            className="p-2 rounded-full hover:bg-hf-blush transition-colors"
-            aria-label="Go back"
-            data-ocid="chat.back.button"
+            onClick={() => setHotTalks((v) => !v)}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+              hotTalks
+                ? "bg-orange-500/20 border border-orange-500/50"
+                : "glass-card"
+            }`}
+            title="Hot Talks Mode"
+            data-ocid="chat.hot_talks.toggle"
           >
-            <ArrowLeft className="w-5 h-5 text-hf-brown" />
+            <Flame
+              className={`w-4 h-4 ${hotTalks ? "text-orange-400" : "text-muted-neon"}`}
+            />
           </button>
-
-          <div
-            className={`w-10 h-10 rounded-full ${cardBg} flex items-center justify-center text-xl flex-shrink-0`}
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/messages" })}
+            className="w-9 h-9 rounded-full glass-card flex items-center justify-center"
+            data-ocid="chat.messages.button"
           >
-            {companion.emoji}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-bold text-hf-brown text-base truncate">
-                {companion.name}
-              </h1>
-              <Heart className="w-3.5 h-3.5 text-hf-rose fill-current flex-shrink-0" />
-            </div>
-            <p className="text-xs text-hf-body capitalize">
-              Your AI {companion.type} &middot; {companion.personality}
-            </p>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="p-2 rounded-full hover:bg-hf-blush transition-colors"
-                aria-label="More options"
-                data-ocid="chat.options.dropdown_menu"
-              >
-                <MoreVertical className="w-5 h-5 text-hf-body" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-xl">
-              <DropdownMenuItem
-                onClick={clearChat}
-                className="text-destructive focus:text-destructive cursor-pointer"
-                data-ocid="chat.clear.delete_button"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear conversation
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <MessageCircle className="w-4 h-4 text-muted-neon" />
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/call" })}
+            className="w-9 h-9 rounded-full glass-card flex items-center justify-center"
+            data-ocid="chat.call.button"
+          >
+            <Phone className="w-4 h-4 text-muted-neon" />
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/video" })}
+            className="w-9 h-9 rounded-full glass-card flex items-center justify-center"
+            data-ocid="chat.video.button"
+          >
+            <Video className="w-4 h-4 text-muted-neon" />
+          </button>
         </div>
-      </header>
+      </div>
+
+      {/* Hot Talks banner */}
+      <AnimatePresence>
+        {hotTalks && (
+          <motion.div
+            className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border-b border-orange-500/20"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+          >
+            <Flame className="w-3.5 h-3.5 text-orange-400" />
+            <span className="text-xs text-orange-300 font-medium">
+              Hot Talks Mode Active
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Messages */}
-      <ScrollArea className="flex-1" data-ocid="chat.messages.list">
-        <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-          {messages.map((msg, index) => (
-            <div
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        <AnimatePresence initial={false}>
+          {messages.map((msg, i) => (
+            <motion.div
               key={msg.id}
-              className={`flex ${
-                msg.role === "user" ? "justify-end" : "justify-start"
-              } animate-fade-in`}
-              data-ocid={`chat.item.${index + 1}`}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              data-ocid={`chat.message.item.${i + 1}`}
             >
-              {msg.role === "companion" && (
+              {msg.role === "ai" && (
                 <div
-                  className={`w-8 h-8 rounded-full ${cardBg} flex items-center justify-center text-base mr-2 flex-shrink-0 self-end mb-1`}
+                  className={`w-7 h-7 rounded-full bg-gradient-to-br ${companion.color} flex-shrink-0 mr-2 mt-1 flex items-center justify-center text-xs font-bold text-white overflow-hidden`}
                 >
-                  {companion.emoji}
+                  {companion.image ? (
+                    <img
+                      src={companion.image}
+                      alt={companion.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    companion.name[0]
+                  )}
                 </div>
               )}
-              <div className="max-w-[75%] flex flex-col">
-                <div
-                  className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-xs ${
-                    msg.role === "user"
-                      ? "bubble-user rounded-tr-sm"
-                      : "bubble-ai rounded-tl-sm"
-                  }`}
-                >
-                  {msg.text}
-                </div>
-                <span
-                  className={`text-[10px] text-hf-body/60 mt-1 ${
-                    msg.role === "user" ? "text-right" : "text-left"
-                  }`}
-                >
-                  {formatTime(msg.timestamp)}
-                </span>
-              </div>
-            </div>
-          ))}
-
-          {/* Typing indicator */}
-          {isTyping && (
-            <div
-              className="flex justify-start items-end gap-2 animate-fade-in"
-              data-ocid="chat.typing.loading_state"
-            >
               <div
-                className={`w-8 h-8 rounded-full ${cardBg} flex items-center justify-center text-base flex-shrink-0`}
+                className={`max-w-[72%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  msg.role === "user"
+                    ? "bubble-user rounded-br-sm"
+                    : "bubble-ai rounded-bl-sm"
+                }`}
               >
-                {companion.emoji}
+                {msg.text}
               </div>
-              <div className="bubble-ai rounded-2xl rounded-tl-sm px-4 py-3 shadow-xs">
-                <div className="flex gap-1.5 items-center h-4">
-                  {[0, 1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className="w-2 h-2 rounded-full bg-hf-rose/60 typing-dot"
-                      style={{ animationDelay: `${i * 200}ms` }}
-                    />
-                  ))}
-                </div>
-              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        {isLoading && (
+          <div className="flex justify-start" data-ocid="chat.loading_state">
+            <div
+              className={`w-7 h-7 rounded-full bg-gradient-to-br ${companion.color} flex-shrink-0 mr-2 mt-1 flex items-center justify-center text-xs font-bold text-white`}
+            >
+              {companion.name[0]}
             </div>
-          )}
-
-          <div ref={bottomRef} />
-        </div>
-      </ScrollArea>
+            <div className="bubble-ai rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+              <span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" />
+              <span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" />
+              <span className="typing-dot w-1.5 h-1.5 rounded-full bg-white/60" />
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
 
       {/* Input bar */}
-      <div
-        className="bg-white border-t border-border sticky bottom-0"
-        data-ocid="chat.input.panel"
-      >
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Input
+      <div className="px-4 py-3 border-t border-white/5 bg-black/30 backdrop-blur-xl">
+        <div className="flex gap-2 items-end">
+          <input
+            type="text"
+            placeholder={`Message ${companion.name}...`}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={`Message ${companion.name}...`}
-            className="flex-1 rounded-full border-border bg-muted/50 focus:border-hf-rose text-hf-brown placeholder:text-hf-body/50 px-5"
-            disabled={isTyping}
-            maxLength={500}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+            className="flex-1 bg-white/5 border border-white/10 text-white rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-neon-violet/50 placeholder:text-white/25 resize-none"
             data-ocid="chat.message.input"
           />
-          <Button
+          <button
+            type="button"
             onClick={sendMessage}
-            disabled={!input.trim() || isTyping}
-            size="icon"
-            className="rounded-full bg-hf-rose hover:bg-accent text-white w-11 h-11 flex-shrink-0 transition-all hover:scale-105 disabled:opacity-40"
-            aria-label="Send message"
-            data-ocid="chat.send.primary_button"
+            disabled={!input.trim() || isLoading}
+            className="w-10 h-10 rounded-full gradient-neon-btn flex items-center justify-center disabled:opacity-40 hover:opacity-90 transition-all flex-shrink-0"
+            data-ocid="chat.send.button"
           >
-            <Send className="w-4 h-4" />
-          </Button>
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 text-white animate-spin" />
+            ) : (
+              <Send className="w-4 h-4 text-white" />
+            )}
+          </button>
         </div>
-        <p className="text-center text-[10px] text-hf-body/40 pb-2">
-          AI responses are simulated for entertainment purposes.
-        </p>
       </div>
     </div>
   );

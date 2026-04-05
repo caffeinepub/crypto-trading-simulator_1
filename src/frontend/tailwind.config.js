@@ -16,8 +16,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Figtree", "DMSans", "system-ui", "sans-serif"],
-        display: ["PlayfairDisplay", "Playfair Display", "Georgia", "serif"],
+        sans: ["Figtree", "PlusJakartaSans", "system-ui", "sans-serif"],
+        display: ["BricolageGrotesque", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
@@ -76,15 +76,16 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        xl: "1rem",
+        xl: "1.25rem",
         "2xl": "1.5rem",
         "3xl": "2rem",
+        "4xl": "2.5rem",
       },
       boxShadow: {
-        xs: "0 1px 2px 0 rgba(0,0,0,0.05)",
-        warm: "0 4px 24px 0 oklch(0.57 0.09 12 / 0.12)",
-        card: "0 2px 16px 0 oklch(0.57 0.09 12 / 0.08)",
-        deep: "0 8px 40px 0 oklch(0.24 0.04 42 / 0.15)",
+        "neon-violet": "0 0 20px oklch(0.62 0.22 296 / 0.4), 0 0 40px oklch(0.62 0.22 296 / 0.2)",
+        "neon-pink": "0 0 20px oklch(0.60 0.22 340 / 0.4), 0 0 40px oklch(0.60 0.22 340 / 0.2)",
+        "neon-cyan": "0 0 20px oklch(0.72 0.14 218 / 0.4), 0 0 40px oklch(0.72 0.14 218 / 0.15)",
+        glass: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
       },
       keyframes: {
         "accordion-down": {

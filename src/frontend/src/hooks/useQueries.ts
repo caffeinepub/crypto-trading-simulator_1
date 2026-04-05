@@ -1,125 +1,51 @@
-import type { Principal } from "@icp-sdk/core/principal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApprovalStatus, UserRole } from "../backend.d";
-import type { UserApprovalInfo } from "../backend.d";
+import type { Message } from "../backend.d";
 import { useActor } from "./useActor";
 
-export { ApprovalStatus, UserRole };
-
-export function useIsAdmin() {
-  const { actor, isFetching } = useActor();
-  return useQuery<boolean>({
-    queryKey: ["isAdmin"],
-    queryFn: async () => {
-      if (!actor) return false;
-      return actor.isCallerAdmin();
+export function useSaveCompanionPreference() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (preference: string) => {
+      if (!actor) return;
+      return actor.saveCompanionPreference(preference);
     },
-    enabled: !!actor && !isFetching,
-    staleTime: 0,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companionPreference"] });
+    },
   });
 }
 
-export function useIsApproved() {
+export function useGetCompanionPreference() {
   const { actor, isFetching } = useActor();
-  return useQuery<boolean>({
-    queryKey: ["isApproved"],
+  return useQuery<string | null>({
+    queryKey: ["companionPreference"],
     queryFn: async () => {
-      if (!actor) return false;
-      return actor.isCallerApproved();
-    },
-    enabled: !!actor && !isFetching,
-    staleTime: 0,
-  });
-}
-
-export function useUserRole() {
-  const { actor, isFetching } = useActor();
-  return useQuery<UserRole>({
-    queryKey: ["userRole"],
-    queryFn: async () => {
-      if (!actor) return UserRole.guest;
-      return actor.getCallerUserRole();
+      if (!actor) return null;
+      return actor.getCompanionPreference();
     },
     enabled: !!actor && !isFetching,
   });
 }
 
-export function useListApprovals() {
+export function useSaveChatHistory() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: async (history: Array<Message>) => {
+      if (!actor) return;
+      return actor.saveChatHistory(history);
+    },
+  });
+}
+
+export function useGetChatHistory() {
   const { actor, isFetching } = useActor();
-  return useQuery<UserApprovalInfo[]>({
-    queryKey: ["approvals"],
+  return useQuery<Array<Message>>({
+    queryKey: ["chatHistory"],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.listApprovals();
+      return actor.getChatHistory();
     },
     enabled: !!actor && !isFetching,
-    staleTime: 0,
-  });
-}
-
-export function useRequestApproval() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      if (!actor) throw new Error("Not connected");
-      return actor.requestApproval();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["isApproved"] });
-      queryClient.invalidateQueries({ queryKey: ["approvals"] });
-    },
-  });
-}
-
-export function useSetApproval() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      user,
-      status,
-    }: {
-      user: Principal;
-      status: ApprovalStatus;
-    }) => {
-      if (!actor) throw new Error("Not connected");
-      return actor.setApproval(user, status);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["approvals"] });
-      queryClient.invalidateQueries({ queryKey: ["isApproved"] });
-    },
-  });
-}
-
-export function useHasAnyAdmin() {
-  const { actor, isFetching } = useActor();
-  return useQuery<boolean>({
-    queryKey: ["hasAnyAdmin"],
-    queryFn: async () => {
-      if (!actor) return true; // assume admin exists if not connected
-      return actor.hasAnyAdmin();
-    },
-    enabled: !!actor && !isFetching,
-    staleTime: 0,
-  });
-}
-
-export function useClaimAdmin() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      if (!actor) throw new Error("Not connected");
-      return actor.claimAdmin();
-    },
-    onSuccess: () => {
-      // Invalidate all auth-related queries so the app re-routes correctly
-      queryClient.invalidateQueries({ queryKey: ["isAdmin"] });
-      queryClient.invalidateQueries({ queryKey: ["hasAnyAdmin"] });
-      queryClient.invalidateQueries({ queryKey: ["isApproved"] });
-      queryClient.invalidateQueries({ queryKey: ["userRole"] });
-    },
   });
 }

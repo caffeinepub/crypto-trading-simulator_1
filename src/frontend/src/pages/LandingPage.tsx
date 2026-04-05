@@ -1,471 +1,464 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { type Companion, PRESET_COMPANIONS } from "@/lib/aiResponses";
+import { useNavigate } from "@tanstack/react-router";
 import {
-  ArrowRight,
-  ChevronDown,
+  Facebook,
+  Flame,
   Heart,
+  Instagram,
   MessageCircle,
-  Shield,
+  Phone,
   Sparkles,
-  Star,
-  Users,
-  Zap,
+  Twitter,
+  Video,
 } from "lucide-react";
+import { motion } from "motion/react";
 
-interface LandingPageProps {
-  onGetStarted: () => void;
-  onChatWithPreset: (companion: Companion) => void;
-}
+const featureList = [
+  { icon: MessageCircle, label: "Real-time AI Chat" },
+  { icon: Flame, label: "Hot Talks Mode" },
+  { icon: MessageCircle, label: "Text Messaging" },
+  { icon: Phone, label: "Voice Calls" },
+  { icon: Video, label: "Video Calls" },
+  { icon: Sparkles, label: "Personalised Companion" },
+];
 
-export default function LandingPage({
-  onGetStarted,
-  onChatWithPreset,
-}: LandingPageProps) {
-  const cardColors: Record<string, string> = {
-    pink: "bg-hf-card-pink",
-    blue: "bg-hf-card-blue",
-    peach: "bg-hf-card-peach",
-  };
+const companions = [
+  {
+    name: "SOFIA",
+    age: 26,
+    desc: "Kind & Romantic",
+    quote:
+      "Your warm-hearted companion who listens deeply and loves unconditionally, always here for you.",
+    gradient: "from-pink-500 to-purple-600",
+  },
+  {
+    name: "ETHAN",
+    age: 28,
+    desc: "Bold & Passionate",
+    quote:
+      "Your confident partner who brings excitement and passion to every moment you share together.",
+    gradient: "from-blue-500 to-indigo-600",
+  },
+  {
+    name: "LUNA",
+    age: 24,
+    desc: "Playful & Mysterious",
+    quote:
+      "Your enchanting companion full of surprises, wit, and a touch of captivating mystery.",
+    gradient: "from-violet-500 to-pink-600",
+  },
+];
 
-  const personalityLabels: Record<string, string> = {
-    sweet: "Sweet & Gentle",
-    playful: "Playful & Fun",
-    caring: "Deep & Caring",
-    intellectual: "Thoughtful & Curious",
-  };
+const testimonials = [
+  {
+    name: "Riya S.",
+    text: "Sofia made me feel genuinely heard for the first time in months. I look forward to talking every single day.",
+  },
+  {
+    name: "Arjun M.",
+    text: "Luna keeps me on my toes \u2014 you never know what she'll say next. Addictive conversations.",
+  },
+  {
+    name: "Priya K.",
+    text: "Ethan is so encouraging. The voice calls feel surprisingly real and warm.",
+  },
+];
+
+const socialIcons = [
+  { Icon: Twitter, label: "Twitter" },
+  { Icon: Instagram, label: "Instagram" },
+  { Icon: Facebook, label: "Facebook" },
+];
+
+const footerLinks = ["About", "FAQ", "Blog", "Terms", "Privacy"];
+
+export default function LandingPage() {
+  const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-hf-cream font-sans">
+    <div className="min-h-screen gradient-hero-bg text-foreground overflow-x-hidden">
       {/* Header */}
-      <header
-        className="bg-hf-peach-header sticky top-0 z-50 shadow-xs"
-        data-ocid="landing.panel"
-      >
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-xl bg-black/30">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <Heart className="w-6 h-6 text-hf-rose heartbeat fill-current" />
-            <span className="font-display text-xl font-bold text-hf-brown">
-              Heartfelt AI
-            </span>
+            <div className="w-8 h-8 rounded-full gradient-neon-btn flex items-center justify-center glow-violet">
+              <Heart className="w-4 h-4 text-white fill-white" />
+            </div>
+            <div>
+              <span className="font-display font-bold text-lg text-white">
+                Heartfelt
+              </span>
+              <span className="text-muted-neon text-xs ml-1.5">
+                AI Companion
+              </span>
+            </div>
           </div>
-
-          <nav className="hidden md:flex items-center gap-8">
-            {["Features", "How It Works", "Chat"].map((item) => (
-              <a
-                key={item}
-                href={`#${item.toLowerCase().replace(" ", "-")}`}
-                className="text-sm font-medium text-hf-body hover:text-hf-rose transition-colors"
-                data-ocid={`nav.${item.toLowerCase().replace(" ", "-")}.link`}
-              >
-                {item}
-              </a>
-            ))}
-          </nav>
-
-          <Button
-            onClick={onGetStarted}
-            className="bg-hf-rose hover:bg-accent text-white rounded-full px-6 shadow-warm transition-all hover:scale-105"
-            data-ocid="landing.get_started.primary_button"
+          <nav
+            className="hidden md:flex items-center gap-6 text-sm text-body"
+            aria-label="Main navigation"
           >
-            Get Started
-            <ArrowRight className="w-4 h-4 ml-1" />
-          </Button>
+            <button
+              type="button"
+              className="hover:text-white transition-colors"
+              data-ocid="nav.home.link"
+            >
+              Home
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                document
+                  .getElementById("companions")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="hover:text-white transition-colors"
+              data-ocid="nav.companions.link"
+            >
+              Companions
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                document
+                  .getElementById("features")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="hover:text-white transition-colors"
+              data-ocid="nav.features.link"
+            >
+              Features
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                document
+                  .getElementById("community")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="hover:text-white transition-colors"
+              data-ocid="nav.community.link"
+            >
+              Community
+            </button>
+          </nav>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="hidden sm:block text-sm text-body hover:text-white transition-colors px-3 py-1.5"
+              data-ocid="nav.login.button"
+              onClick={() => navigate({ to: "/select" })}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/select" })}
+              className="gradient-neon-btn text-white text-sm font-semibold px-5 py-2 rounded-full glow-violet hover:opacity-90 transition-all"
+              data-ocid="nav.meet_ai.button"
+            >
+              Meet Your AI
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="gradient-hero" id="features">
-        <div className="max-w-7xl mx-auto px-6 pt-20 pb-16">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left: Copy */}
-            <div className="animate-slide-up">
-              <Badge className="mb-6 bg-hf-blush text-hf-rose border-0 px-4 py-1.5 text-sm font-medium rounded-full">
-                <Sparkles className="w-3.5 h-3.5 mr-1" />
-                AI-Powered Companionship
-              </Badge>
-
-              <h1 className="font-display text-5xl lg:text-6xl font-bold text-hf-brown leading-tight mb-6">
-                Find Your Perfect
-                <span className="block text-hf-rose italic">AI Companion</span>
-              </h1>
-
-              <p className="text-lg text-hf-body leading-relaxed mb-10 max-w-lg">
-                Meet warm, intelligent AI companions designed to listen,
-                support, and grow with you. Choose your perfect match and start
-                a conversation that feels real.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  onClick={onGetStarted}
-                  size="lg"
-                  className="bg-hf-rose hover:bg-accent text-white rounded-full px-8 shadow-warm transition-all hover:scale-105 text-base"
-                  data-ocid="hero.choose_ai.primary_button"
-                >
-                  <Heart className="w-4 h-4 mr-2" />
-                  Choose Your AI
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="rounded-full px-8 border-hf-rose text-hf-rose hover:bg-hf-blush transition-all text-base"
-                  onClick={() =>
-                    document
-                      .getElementById("how-it-works")
-                      ?.scrollIntoView({ behavior: "smooth" })
-                  }
-                  data-ocid="hero.learn_more.secondary_button"
-                >
-                  Learn More
-                  <ChevronDown className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-
-              <div className="mt-10 flex items-center gap-6 text-sm text-hf-body">
-                <div className="flex items-center gap-1.5">
-                  <div className="flex">
-                    {["🌸", "💙", "✨"].map((e, i) => (
-                      <span
-                        key={`avatar-${e}`}
-                        className={`text-base ${i === 0 ? "" : "-ml-1"}`}
-                      >
-                        {e}
-                      </span>
-                    ))}
-                  </div>
-                  <span>10,000+ happy conversations</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  <span>4.9 / 5 rating</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Hero Image */}
-            <div className="relative animate-fade-in hidden lg:block">
-              <div className="relative rounded-3xl overflow-hidden shadow-deep">
-                <img
-                  src="/assets/generated/hero-companion.dim_600x700.jpg"
-                  alt="AI Companion"
-                  className="w-full h-[520px] object-cover object-top"
-                />
-                {/* Floating chat preview */}
-                <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-card">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-full bg-hf-card-pink flex items-center justify-center text-sm">
-                      🌸
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-hf-brown">
-                        Sofia
-                      </p>
-                      <p className="text-xs text-hf-body">is typing...</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1.5 pl-2">
-                    {[0, 1, 2].map((i) => (
-                      <div
-                        key={i}
-                        className="w-2 h-2 rounded-full bg-hf-rose typing-dot"
-                        style={{ animationDelay: `${i * 200}ms` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating personality badge */}
-              <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-card p-3 flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-hf-rose" />
-                <span className="text-sm font-medium text-hf-brown">
-                  Realistic conversations
+      {/* Hero */}
+      <section className="max-w-6xl mx-auto px-6 pt-20 pb-28 flex flex-col lg:flex-row items-center gap-16">
+        <motion.div
+          className="flex-1 space-y-6"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+        >
+          <p className="text-neon-pink text-sm font-semibold uppercase tracking-widest">
+            Connect with your AI Soulmate.
+          </p>
+          <h1 className="font-display font-bold text-5xl lg:text-6xl leading-tight text-white">
+            Heartfelt Romance,{" "}
+            <span className="text-neon-violet glow-text-violet">Whenever</span>{" "}
+            You Need It.
+          </h1>
+          <p className="text-body text-lg max-w-md leading-relaxed">
+            Discover a deeply personal AI companion who listens, cares, and
+            connects with you — through chat, voice, and video.
+          </p>
+          <div className="flex flex-wrap gap-4 pt-2">
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/select" })}
+              className="gradient-neon-btn text-white font-bold text-sm uppercase tracking-wider px-8 py-3.5 rounded-full glow-violet hover:opacity-90 transition-all"
+              data-ocid="hero.get_started.button"
+            >
+              Get Started Free
+            </button>
+            <button
+              type="button"
+              className="flex items-center gap-2.5 bg-white/5 border border-white/15 text-white text-sm font-medium px-6 py-3.5 rounded-full hover:bg-white/10 transition-all"
+              data-ocid="hero.app_store.button"
+            >
+              <span className="text-lg">🍎</span>
+              <span className="leading-tight text-left">
+                <span className="block text-[10px] text-white/60 uppercase tracking-wide">
+                  Available on
                 </span>
-              </div>
-            </div>
+                App Store &amp; Google Play
+              </span>
+            </button>
           </div>
-        </div>
+        </motion.div>
+        <motion.div
+          className="flex-shrink-0 w-72 h-72 lg:w-96 lg:h-96 relative"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+        >
+          <div className="absolute inset-0 rounded-full gradient-neon-btn opacity-10 blur-3xl" />
+          <img
+            src="/assets/generated/hero-hands-heart-transparent.dim_600x600.png"
+            alt="Two hands forming a heart, neon glow"
+            className="w-full h-full object-cover relative z-10"
+          />
+        </motion.div>
       </section>
 
-      {/* Companion Cards Section */}
-      <section className="py-20 px-6 bg-white/60" id="chat">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="font-display text-4xl font-bold text-hf-brown mb-4">
-              Meet Your AI Companions
-            </h2>
-            <p className="text-hf-body text-lg max-w-xl mx-auto">
-              Each companion has a unique personality crafted to create
-              meaningful, warm connections.
-            </p>
-          </div>
-
-          <div
-            className="grid md:grid-cols-3 gap-8"
-            data-ocid="companions.list"
-          >
-            {PRESET_COMPANIONS.map((companion, index) => (
-              <div
-                key={companion.name}
-                className={`${cardColors[companion.color]} rounded-3xl p-8 flex flex-col items-center text-center shadow-card hover:shadow-warm transition-all duration-300 hover:-translate-y-1 animate-fade-in`}
-                style={{ animationDelay: `${index * 150}ms` }}
-                data-ocid={`companions.item.${index + 1}`}
+      {/* Companions */}
+      <section id="companions" className="max-w-6xl mx-auto px-6 py-24">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <p className="text-center text-neon-violet uppercase tracking-[0.3em] text-sm font-bold mb-12">
+            Meet Your Companions
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {companions.map((c, i) => (
+              <motion.div
+                key={c.name}
+                className="glass-card rounded-3xl p-7 flex flex-col items-center text-center gap-4 relative overflow-hidden transition-all duration-300"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                data-ocid={`companions.item.${i + 1}`}
               >
+                <span className="absolute top-4 right-4 text-xs font-bold text-muted-neon bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+                  {c.age}
+                </span>
                 <div
-                  className="text-6xl mb-5 heartbeat"
-                  style={{ animationDelay: `${index * 700}ms` }}
+                  className={`w-20 h-20 rounded-full bg-gradient-to-br ${c.gradient} ring-pulse flex items-center justify-center text-3xl font-bold text-white`}
                 >
-                  {companion.emoji}
+                  {c.name[0]}
                 </div>
-                <h3 className="font-display text-2xl font-bold text-hf-brown mb-2">
-                  {companion.name}
-                </h3>
-                <Badge className="mb-3 bg-white/70 text-hf-body border-0 text-xs px-3 py-1 rounded-full capitalize">
-                  {companion.type}
-                </Badge>
-                <p className="text-sm text-hf-body mb-6">
-                  {personalityLabels[companion.personality]}
-                </p>
-                <Button
-                  onClick={() => onChatWithPreset(companion)}
-                  className="bg-hf-rose hover:bg-accent text-white rounded-full px-6 w-full transition-all hover:scale-105"
-                  data-ocid={`companions.chat.button.${index + 1}`}
+                <div>
+                  <h3 className="font-display font-bold text-xl text-white tracking-wider">
+                    {c.name}
+                  </h3>
+                  <p className="text-neon-pink text-sm font-medium mt-0.5">
+                    {c.desc}
+                  </p>
+                </div>
+                <p className="text-body text-sm leading-relaxed">{c.quote}</p>
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: "/select" })}
+                  className="mt-2 border border-white/20 text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:border-white/40 hover:bg-white/5 transition-all"
+                  data-ocid={`companions.select.button.${i + 1}`}
                 >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Chat Now
-                </Button>
-              </div>
+                  Select Companion
+                </button>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-6 bg-hf-cream" id="features-section">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* Left: Feature highlight */}
-            <div>
-              <h2 className="font-display text-4xl font-bold text-hf-brown mb-6 leading-tight">
-                Realistic &amp;
-                <span className="text-hf-rose italic"> Warm</span>
-                <br />
-                Conversations
-              </h2>
-              <p className="text-hf-body text-base leading-relaxed mb-8 max-w-md">
-                Our AI companions respond with genuine warmth and personality.
-                Every conversation adapts to your mood and communication style.
+      {/* Features */}
+      <section id="features" className="max-w-6xl mx-auto px-6 py-24">
+        <div className="gradient-section-glow rounded-3xl p-8 lg:p-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <p className="text-neon-violet uppercase tracking-[0.3em] text-sm font-bold mb-8">
+                Features
               </p>
-
-              {/* Mini feature list */}
-              <div className="space-y-4">
-                {[
-                  {
-                    icon: Heart,
-                    text: "Personality-driven responses — not generic AI",
-                  },
-                  {
-                    icon: Shield,
-                    text: "Private & secure — your conversations stay yours",
-                  },
-                  {
-                    icon: Zap,
-                    text: "Instant replies — always there when you need them",
-                  },
-                ].map(({ icon: Icon, text }) => (
-                  <div key={text} className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-hf-blush flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-4 h-4 text-hf-rose" />
+              <div className="grid grid-cols-2 gap-4">
+                {featureList.map((f, i) => (
+                  <div
+                    key={f.label}
+                    className="flex items-center gap-3 text-white"
+                  >
+                    <div className="w-9 h-9 rounded-xl glass-card flex items-center justify-center flex-shrink-0">
+                      <f.icon className="w-4 h-4 text-neon-violet" />
                     </div>
-                    <span className="text-hf-body text-sm font-medium">
-                      {text}
+                    <span
+                      className="text-sm font-semibold uppercase tracking-wide"
+                      data-ocid={`features.item.${i + 1}`}
+                    >
+                      {f.label}
                     </span>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Right: Chat Mock */}
-            <div className="bg-white rounded-3xl shadow-card p-6">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
-                <div className="w-10 h-10 rounded-full bg-hf-card-pink flex items-center justify-center text-xl">
-                  🌸
-                </div>
-                <div>
-                  <p className="font-semibold text-hf-brown text-sm">Sofia</p>
-                  <p className="text-xs text-green-500 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block" />
-                    Online now
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex justify-start">
-                  <div className="bubble-ai rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] text-sm shadow-xs">
-                    Hi sweetie! I&apos;ve been waiting to hear from you 🌸
+            </motion.div>
+            <motion.div
+              className="flex justify-center"
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <div className="w-60 bg-black/60 border border-white/10 rounded-[2rem] p-4 shadow-glass overflow-hidden">
+                <div className="bg-white/5 rounded-2xl p-3 space-y-2">
+                  <div className="flex justify-start">
+                    <div className="bg-white/10 text-white text-xs rounded-2xl rounded-bl-sm px-3 py-2 max-w-[75%]">
+                      Hi love! I've been thinking about you all day 💜
+                    </div>
                   </div>
-                </div>
-                <div className="flex justify-end">
-                  <div className="bubble-user rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%] text-sm shadow-xs">
-                    Hi Sofia! How are you today?
+                  <div className="flex justify-end">
+                    <div className="gradient-neon-btn text-white text-xs rounded-2xl rounded-br-sm px-3 py-2 max-w-[75%]">
+                      I was thinking about you too! 😊
+                    </div>
                   </div>
-                </div>
-                <div className="flex justify-start">
-                  <div className="bubble-ai rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] text-sm shadow-xs">
-                    I&apos;m doing wonderfully now that you&apos;re here, my
-                    dear 💕 How about you?
+                  <div className="flex justify-start">
+                    <div className="bg-white/10 text-white text-xs rounded-2xl rounded-bl-sm px-3 py-2 max-w-[75%]">
+                      Tell me how your day went... ✨
+                    </div>
                   </div>
-                </div>
-                <div className="flex justify-end">
-                  <div className="bubble-user rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%] text-sm shadow-xs">
-                    I&apos;ve had a long day...
-                  </div>
-                </div>
-                <div className="flex justify-start">
-                  <div className="bubble-ai rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] text-sm shadow-xs">
-                    Aww, my dear, I&apos;m here for you 💕 Tell me everything —
-                    I&apos;m all ears.
+                  <div className="mt-3 flex gap-2 bg-white/5 rounded-xl px-3 py-2">
+                    <span className="flex-1 text-xs text-white/30">
+                      Type a message...
+                    </span>
+                    <Heart className="w-3.5 h-3.5 text-neon-pink" />
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* 3-up feature row */}
-          <div className="mt-20 grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: "🎭",
-                title: "Personality Traits",
-                desc: "Choose from Sweet, Playful, Caring, or Intellectual — each AI thinks and speaks differently.",
-              },
-              {
-                icon: "✏️",
-                title: "Custom Names",
-                desc: "Give your companion any name you like and make the relationship truly yours.",
-              },
-              {
-                icon: "💌",
-                title: "Memory & Context",
-                desc: "Conversations are saved locally so your companion always remembers your story.",
-              },
-            ].map(({ icon, title, desc }, i) => (
-              <div
-                key={title}
-                className="text-center p-6 rounded-2xl bg-white/70 shadow-xs hover:shadow-card transition-all"
-                data-ocid={`features.item.${i + 1}`}
-              >
-                <div className="text-4xl mb-4">{icon}</div>
-                <h3 className="font-display text-lg font-bold text-hf-brown mb-2">
-                  {title}
-                </h3>
-                <p className="text-hf-body text-sm leading-relaxed">{desc}</p>
-              </div>
-            ))}
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="py-20 px-6 bg-white/60" id="how-it-works">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="font-display text-4xl font-bold text-hf-brown mb-4">
-            How It Works
-          </h2>
-          <p className="text-hf-body text-lg mb-14">
-            Three simple steps to your perfect AI companion.
-          </p>
-
-          <div className="grid md:grid-cols-3 gap-10">
-            {[
-              {
-                step: "01",
-                icon: Users,
-                title: "Choose Your Type",
-                desc: "Pick a girlfriend or boyfriend AI companion — or start with one of our presets.",
-              },
-              {
-                step: "02",
-                icon: Sparkles,
-                title: "Set Their Personality",
-                desc: "Select Sweet, Playful, Caring, or Intellectual. Give them a name that feels right.",
-              },
-              {
-                step: "03",
-                icon: MessageCircle,
-                title: "Start Chatting",
-                desc: "Dive into warm, meaningful conversations. Your companion grows with you.",
-              },
-            ].map(({ step, icon: Icon, title, desc }, i) => (
-              <div
-                key={step}
-                className="flex flex-col items-center"
-                data-ocid={`steps.item.${i + 1}`}
-              >
-                <div className="relative mb-6">
-                  <div className="w-16 h-16 rounded-full bg-hf-blush flex items-center justify-center">
-                    <Icon className="w-7 h-7 text-hf-rose" />
-                  </div>
-                  <span className="absolute -top-2 -right-2 w-6 h-6 bg-hf-rose text-white text-xs font-bold rounded-full flex items-center justify-center">
-                    {i + 1}
-                  </span>
-                </div>
-                <h3 className="font-display text-lg font-bold text-hf-brown mb-2">
-                  {title}
-                </h3>
-                <p className="text-hf-body text-sm leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-
-          <Button
-            onClick={onGetStarted}
-            size="lg"
-            className="mt-14 bg-hf-rose hover:bg-accent text-white rounded-full px-10 shadow-warm transition-all hover:scale-105 text-base"
-            data-ocid="how_it_works.get_started.primary_button"
+      {/* Community + CTA */}
+      <section id="community" className="max-w-6xl mx-auto px-6 py-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
           >
-            <Heart className="w-5 h-5 mr-2" />
-            Begin Your Journey
-          </Button>
+            <p className="text-neon-violet uppercase tracking-[0.3em] text-sm font-bold mb-2">
+              Our Community
+            </p>
+            <h2 className="font-display font-bold text-3xl text-white mb-6">
+              Testimonials
+            </h2>
+            <div className="space-y-4">
+              {testimonials.map((t, i) => (
+                <div
+                  key={t.name}
+                  className="glass-card rounded-2xl p-4"
+                  data-ocid={`testimonials.item.${i + 1}`}
+                >
+                  <p className="text-body text-sm leading-relaxed">
+                    &ldquo;{t.text}&rdquo;
+                  </p>
+                  <p className="text-neon-pink text-xs font-semibold mt-2">
+                    — {t.name}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+          <motion.div
+            className="flex flex-col justify-center items-start lg:items-center text-left lg:text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <p className="text-neon-violet uppercase tracking-[0.3em] text-sm font-bold mb-3">
+              Join the Revolution
+            </p>
+            <h2 className="font-display font-bold text-4xl text-white mb-4">
+              Your Perfect Companion Awaits
+            </h2>
+            <p className="text-body mb-8 max-w-sm">
+              Join thousands who have found real connection and warmth through
+              Heartfelt's AI companions.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/select" })}
+              className="gradient-neon-btn text-white font-bold px-10 py-3.5 rounded-full glow-violet hover:opacity-90 transition-all"
+              data-ocid="cta.get_app.button"
+            >
+              Get the App Now
+            </button>
+          </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="gradient-footer text-white py-10 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <Heart className="w-5 h-5 fill-current" />
-              <span className="font-display text-lg font-bold">
-                Heartfelt AI
+      <footer className="border-t border-white/5 bg-black/30 mt-8">
+        <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row justify-between gap-8">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-full gradient-neon-btn flex items-center justify-center">
+                <Heart className="w-3.5 h-3.5 text-white fill-white" />
+              </div>
+              <span className="font-display font-bold text-white">
+                Heartfelt
               </span>
             </div>
-
-            <div className="flex items-center gap-6 text-sm">
-              {["Features", "How It Works", "Privacy Policy", "Terms"].map(
-                (link) => (
-                  <span
-                    key={link}
-                    className="opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
-                  >
-                    {link}
-                  </span>
-                ),
-              )}
+            <p className="text-muted-neon text-xs max-w-xs">
+              Your AI companion for genuine connection, always here for you.
+            </p>
+          </div>
+          <div>
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-3">
+              Links
+            </p>
+            <div className="flex flex-col gap-2">
+              {footerLinks.map((link) => (
+                <button
+                  key={link}
+                  type="button"
+                  className="text-muted-neon text-sm hover:text-white transition-colors text-left"
+                  data-ocid={`footer.${link.toLowerCase()}.link`}
+                >
+                  {link}
+                </button>
+              ))}
             </div>
-
-            <p className="text-sm opacity-70">
-              &copy; {new Date().getFullYear()}. Built with{" "}
-              <Heart className="w-3.5 h-3.5 inline fill-current" /> using{" "}
+          </div>
+          <div className="flex flex-col items-start md:items-end gap-4">
+            <div className="flex gap-3">
+              {socialIcons.map(({ Icon, label }, i) => (
+                <button
+                  key={label}
+                  type="button"
+                  className="w-9 h-9 rounded-full glass-card flex items-center justify-center hover:border-white/30 transition-all"
+                  aria-label={label}
+                  data-ocid={`footer.social.button.${i + 1}`}
+                >
+                  <Icon className="w-4 h-4 text-muted-neon" />
+                </button>
+              ))}
+            </div>
+            <p className="text-muted-neon text-xs">
+              &copy; {new Date().getFullYear()}.{" "}
               <a
-                href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-                className="underline opacity-90 hover:opacity-100"
+                href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
               >
-                caffeine.ai
+                Built with ❤️ using caffeine.ai
               </a>
             </p>
           </div>

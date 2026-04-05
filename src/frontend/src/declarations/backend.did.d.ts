@@ -13,6 +13,16 @@ import type { Principal } from '@icp-sdk/core/principal';
 export type ApprovalStatus = { 'pending' : null } |
   { 'approved' : null } |
   { 'rejected' : null };
+export interface Message { 'content' : string, 'role' : string }
+export interface TransformationInput {
+  'context' : Uint8Array,
+  'response' : http_request_result,
+}
+export interface TransformationOutput {
+  'status' : bigint,
+  'body' : Uint8Array,
+  'headers' : Array<http_header>,
+}
 export interface UserApprovalInfo {
   'status' : ApprovalStatus,
   'principal' : Principal,
@@ -20,16 +30,32 @@ export interface UserApprovalInfo {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface http_header { 'value' : string, 'name' : string }
+export interface http_request_result {
+  'status' : bigint,
+  'body' : Uint8Array,
+  'headers' : Array<http_header>,
+}
 export interface _SERVICE {
+  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'claimAdmin' : ActorMethod<[], boolean>,
+  'getAllChatHistories' : ActorMethod<[], Array<Array<Message>>>,
+  'getAllCompanionPreferences' : ActorMethod<[], Array<string>>,
+  'getAllUserChatHistories' : ActorMethod<
+    [],
+    Array<[Principal, Array<Message>]>
+  >,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'hasAnyAdmin' : ActorMethod<[], boolean>,
+  'getChatHistory' : ActorMethod<[], Array<Message>>,
+  'getCompanionPreference' : ActorMethod<[], [] | [string]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
   'requestApproval' : ActorMethod<[], undefined>,
+  'saveChatHistory' : ActorMethod<[Array<Message>], undefined>,
+  'saveCompanionPreference' : ActorMethod<[string], undefined>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
+  'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

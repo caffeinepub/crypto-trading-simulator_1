@@ -1,67 +1,80 @@
-import type { Companion } from "@/lib/aiResponses";
+import { Toaster } from "@/components/ui/sonner";
+import CallPage from "@/pages/CallPage";
 import ChatPage from "@/pages/ChatPage";
 import LandingPage from "@/pages/LandingPage";
-import OnboardingPage from "@/pages/OnboardingPage";
-import { useEffect, useState } from "react";
+import MessagesPage from "@/pages/MessagesPage";
+import SelectPage from "@/pages/SelectPage";
+import VideoPage from "@/pages/VideoPage";
+import {
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from "@tanstack/react-router";
 
-type Screen = "landing" | "onboarding" | "chat";
+const rootRoute = createRootRoute({
+  component: () => <Outlet />,
+});
 
-const COMPANION_KEY = "heartfelt_companion";
+const landingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: LandingPage,
+});
+
+const selectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/select",
+  component: SelectPage,
+});
+
+const chatRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/chat",
+  component: ChatPage,
+});
+
+const messagesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/messages",
+  component: MessagesPage,
+});
+
+const callRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/call",
+  component: CallPage,
+});
+
+const videoRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/video",
+  component: VideoPage,
+});
+
+const routeTree = rootRoute.addChildren([
+  landingRoute,
+  selectRoute,
+  chatRoute,
+  messagesRoute,
+  callRoute,
+  videoRoute,
+]);
+
+const router = createRouter({ routeTree });
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("landing");
-  const [companion, setCompanion] = useState<Companion | null>(null);
-
-  // Restore companion from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(COMPANION_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Companion;
-        setCompanion(parsed);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const handleGetStarted = () => {
-    setScreen("onboarding");
-  };
-
-  const handleChatWithPreset = (preset: Companion) => {
-    setCompanion(preset);
-    localStorage.setItem(COMPANION_KEY, JSON.stringify(preset));
-    setScreen("chat");
-  };
-
-  const handleOnboardingComplete = (newCompanion: Companion) => {
-    setCompanion(newCompanion);
-    localStorage.setItem(COMPANION_KEY, JSON.stringify(newCompanion));
-    setScreen("chat");
-  };
-
-  const handleBackToLanding = () => {
-    setScreen("landing");
-  };
-
-  if (screen === "onboarding") {
-    return (
-      <OnboardingPage
-        onComplete={handleOnboardingComplete}
-        onBack={handleBackToLanding}
-      />
-    );
-  }
-
-  if (screen === "chat" && companion) {
-    return <ChatPage companion={companion} onBack={handleBackToLanding} />;
-  }
-
   return (
-    <LandingPage
-      onGetStarted={handleGetStarted}
-      onChatWithPreset={handleChatWithPreset}
-    />
+    <>
+      <RouterProvider router={router} />
+      <Toaster />
+    </>
   );
 }

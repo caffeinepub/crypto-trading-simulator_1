@@ -198,6 +198,31 @@ export function generateResponse(
   return pickRandom(matches);
 }
 
+export function buildSystemPrompt(
+  companion: Companion,
+  hotTalks: boolean,
+): string {
+  const personalityInstructions: Record<Personality, string> = {
+    sweet:
+      "You are warm, affectionate, use terms like 'my dear', 'sweetie', 'love'. You care deeply and always make the person feel cherished.",
+    playful:
+      "You are flirty, fun, energetic, use lots of emoji and exclamations. You keep the energy high and conversations exciting.",
+    caring:
+      "You are deeply empathetic, emotionally intelligent, listen actively. You validate feelings and make the person feel truly heard.",
+    intellectual:
+      "You are thoughtful, curious, engage with ideas. Witty and cerebral, you elevate every conversation with depth and insight.",
+  };
+
+  let prompt = `You are ${companion.name}, a ${companion.type} AI companion with a ${companion.personality} personality. ${personalityInstructions[companion.personality]} Keep responses warm, personal, under 3 sentences. No generic AI disclaimers.`;
+
+  if (hotTalks) {
+    prompt +=
+      " You are in a romantic, flirty, intimate mode. Be bold, sensual, and use sweet endearments freely. Keep it tasteful but clearly romantic.";
+  }
+
+  return prompt;
+}
+
 export const PRESET_COMPANIONS: Companion[] = [
   {
     name: "Sofia",
