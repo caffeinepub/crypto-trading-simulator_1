@@ -12,19 +12,21 @@ export function useActor() {
     queryKey: [ACTOR_QUERY_KEY, identity?.getPrincipal().toString()],
     queryFn: async () => {
       if (!identity) {
+        // Return anonymous actor
         return await createActorWithConfig();
       }
-      const actorOptions = {
-        agentOptions: {
-          identity,
-        },
-      };
-      return await createActorWithConfig(actorOptions);
+
+      const actor = await createActorWithConfig({
+        agentOptions: { identity },
+      });
+
+      return actor;
     },
     staleTime: Number.POSITIVE_INFINITY,
     enabled: true,
   });
 
+  // When the actor changes, invalidate dependent queries
   useEffect(() => {
     if (actorQuery.data) {
       queryClient.invalidateQueries({
