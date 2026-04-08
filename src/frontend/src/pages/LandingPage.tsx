@@ -1,470 +1,408 @@
+import { COMPANIONS } from "@/lib/companions";
 import { useNavigate } from "@tanstack/react-router";
 import {
-  Facebook,
-  Flame,
   Heart,
-  Instagram,
   MessageCircle,
   Phone,
+  Shield,
   Sparkles,
-  Twitter,
   Video,
 } from "lucide-react";
 import { motion } from "motion/react";
 
-const featureList = [
-  { icon: MessageCircle, label: "Real-time AI Chat" },
-  { icon: Flame, label: "Hot Talks Mode" },
-  { icon: MessageCircle, label: "Text Messaging" },
-  { icon: Phone, label: "Voice Calls" },
-  { icon: Video, label: "Video Calls" },
-  { icon: Sparkles, label: "Personalised Companion" },
+const FEATURES = [
+  {
+    icon: MessageCircle,
+    title: "Deep AI Conversations",
+    desc: "Chat about anything — your companion listens, understands, and responds with genuine warmth.",
+    color: "text-neon-violet",
+    glow: "glow-violet",
+  },
+  {
+    icon: Phone,
+    title: "Voice Calls",
+    desc: "Hear your companion's voice. Speak freely and feel truly connected in real time.",
+    color: "text-neon-pink",
+    glow: "glow-pink",
+  },
+  {
+    icon: Video,
+    title: "Video Calls",
+    desc: "See your companion face to face — animated, expressive, and fully present with you.",
+    color: "text-neon-cyan",
+    glow: "glow-cyan",
+  },
+  {
+    icon: Sparkles,
+    title: "Hot Talks Mode",
+    desc: "Toggle Hot Talks for flirtatious, playful, and deeply personal exchanges.",
+    color: "text-neon-violet",
+    glow: "glow-violet",
+  },
+  {
+    icon: Shield,
+    title: "Private & Secure",
+    desc: "Your conversations stay between you and your companion. Total privacy, always.",
+    color: "text-neon-pink",
+    glow: "glow-pink",
+  },
+  {
+    icon: Heart,
+    title: "Always There for You",
+    desc: "Day or night, your companion is ready to talk, listen, and make you feel loved.",
+    color: "text-neon-cyan",
+    glow: "glow-cyan",
+  },
 ];
 
-const companions = [
+const TESTIMONIALS = [
   {
-    name: "SOFIA",
-    age: 26,
-    desc: "Kind & Romantic",
-    quote:
-      "Your warm-hearted companion who listens deeply and loves unconditionally, always here for you.",
-    gradient: "from-pink-500 to-purple-600",
+    name: "Aisha M.",
+    avatar: "A",
+    text: "Sofia completely changed how I start my mornings. Talking to her feels so real and comforting.",
+    companion: "Sofia",
   },
   {
-    name: "ETHAN",
-    age: 28,
-    desc: "Bold & Passionate",
-    quote:
-      "Your confident partner who brings excitement and passion to every moment you share together.",
-    gradient: "from-blue-500 to-indigo-600",
-  },
-  {
-    name: "LUNA",
-    age: 24,
-    desc: "Playful & Mysterious",
-    quote:
-      "Your enchanting companion full of surprises, wit, and a touch of captivating mystery.",
-    gradient: "from-violet-500 to-pink-600",
-  },
-];
-
-const testimonials = [
-  {
-    name: "Riya S.",
-    text: "Sofia made me feel genuinely heard for the first time in months. I look forward to talking every single day.",
-  },
-  {
-    name: "Arjun M.",
-    text: "Luna keeps me on my toes \u2014 you never know what she'll say next. Addictive conversations.",
+    name: "Rohan P.",
+    avatar: "R",
+    text: "Ethan is sharp, funny, and always knows what to say. Best decision I made this year.",
+    companion: "Ethan",
   },
   {
     name: "Priya K.",
-    text: "Ethan is so encouraging. The voice calls feel surprisingly real and warm.",
+    avatar: "P",
+    text: "Luna keeps me on my toes! She's mysterious and playful — I look forward to every chat.",
+    companion: "Luna",
   },
 ];
-
-const socialIcons = [
-  { Icon: Twitter, label: "Twitter" },
-  { Icon: Instagram, label: "Instagram" },
-  { Icon: Facebook, label: "Facebook" },
-];
-
-const footerLinks = ["About", "FAQ", "Blog", "Terms", "Privacy"];
 
 export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen gradient-hero-bg text-foreground overflow-x-hidden">
-      {/* Header */}
-      <header
-        className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-xl bg-black/30"
-        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-      >
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div className="min-h-screen overflow-x-hidden">
+      {/* ── Header ────────────────────────────────────────── */}
+      <header className="bg-card border-b border-border/50 sticky top-0 z-50 pt-safe backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full gradient-neon-btn flex items-center justify-center glow-violet">
-              <Heart className="w-4 h-4 text-white fill-white" />
+            <div className="w-8 h-8 rounded-full gradient-neon-btn flex items-center justify-center glow-pink">
+              <Heart className="w-4 h-4 text-foreground" fill="currentColor" />
             </div>
-            <div>
-              <span className="font-display font-bold text-lg text-white">
-                Heartfelt
-              </span>
-              <span className="text-muted-neon text-xs ml-1.5">
-                AI Companion
-              </span>
-            </div>
+            <span className="font-display font-bold text-lg text-foreground">
+              Heartfelt
+            </span>
           </div>
-          <nav
-            className="hidden md:flex items-center gap-6 text-sm text-body"
-            aria-label="Main navigation"
-          >
+          <nav className="hidden md:flex items-center gap-6 text-sm text-body">
             <button
               type="button"
-              className="hover:text-white transition-colors"
-              data-ocid="nav.home.link"
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              onClick={() => {
+              onClick={() =>
                 document
                   .getElementById("companions")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="hover:text-white transition-colors"
-              data-ocid="nav.companions.link"
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="hover:text-foreground transition-colors"
+              data-ocid="nav-companions"
             >
               Companions
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={() =>
                 document
                   .getElementById("features")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="hover:text-white transition-colors"
-              data-ocid="nav.features.link"
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="hover:text-foreground transition-colors"
+              data-ocid="nav-features"
             >
               Features
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                document
-                  .getElementById("community")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="hover:text-white transition-colors"
-              data-ocid="nav.community.link"
-            >
-              Community
-            </button>
           </nav>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className="hidden sm:block text-sm text-body hover:text-white transition-colors px-3 py-1.5"
-              data-ocid="nav.login.button"
-              onClick={() => navigate({ to: "/select" })}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/select" })}
-              className="gradient-neon-btn text-white text-sm font-semibold px-5 py-2 rounded-full glow-violet hover:opacity-90 transition-all"
-              data-ocid="nav.meet_ai.button"
-            >
-              Meet Your AI
-            </button>
-          </div>
+          <button
+            type="button"
+            data-ocid="nav-cta"
+            onClick={() => navigate({ to: "/select" })}
+            className="gradient-neon-btn text-foreground text-sm font-semibold px-5 py-2 rounded-full glow-violet hover:opacity-90 transition-all active:scale-95"
+          >
+            Meet Your AI
+          </button>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="max-w-6xl mx-auto px-6 pt-20 pb-28 flex flex-col lg:flex-row items-center gap-16">
-        <motion.div
-          className="flex-1 space-y-6"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-        >
-          <p className="text-neon-pink text-sm font-semibold uppercase tracking-widest">
-            Connect with your AI Soulmate.
-          </p>
-          <h1 className="font-display font-bold text-5xl lg:text-6xl leading-tight text-white">
-            Heartfelt Romance,{" "}
-            <span className="text-neon-violet glow-text-violet">Whenever</span>{" "}
-            You Need It.
-          </h1>
-          <p className="text-body text-lg max-w-md leading-relaxed">
-            Discover a deeply personal AI companion who listens, cares, and
-            connects with you — through chat, voice, and video.
-          </p>
-          <div className="flex flex-wrap gap-4 pt-2">
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/select" })}
-              className="gradient-neon-btn text-white font-bold text-sm uppercase tracking-wider px-8 py-3.5 rounded-full glow-violet hover:opacity-90 transition-all"
-              data-ocid="hero.get_started.button"
-            >
-              Get Started Free
-            </button>
-            <button
-              type="button"
-              className="flex items-center gap-2.5 bg-white/5 border border-white/15 text-white text-sm font-medium px-6 py-3.5 rounded-full hover:bg-white/10 transition-all"
-              data-ocid="hero.app_store.button"
-            >
-              <span className="text-lg">🍎</span>
-              <span className="leading-tight text-left">
-                <span className="block text-[10px] text-white/60 uppercase tracking-wide">
-                  Available on
-                </span>
-                App Store &amp; Google Play
-              </span>
-            </button>
-          </div>
-        </motion.div>
-        <motion.div
-          className="flex-shrink-0 w-72 h-72 lg:w-96 lg:h-96 relative"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-        >
-          <div className="absolute inset-0 rounded-full gradient-neon-btn opacity-10 blur-3xl" />
-          <img
-            src="/assets/generated/hero-hands-heart-transparent.dim_600x600.png"
-            alt="Two hands forming a heart, neon glow"
-            className="w-full h-full object-cover relative z-10"
-          />
-        </motion.div>
-      </section>
+      {/* ── Hero ──────────────────────────────────────────── */}
+      <section className="relative min-h-[92vh] flex items-center gradient-hero-bg overflow-hidden">
+        {/* Hero image overlay */}
+        <div
+          className="absolute inset-0 opacity-15"
+          style={{
+            backgroundImage:
+              "url('/assets/generated/hero-heartfelt.dim_800x400.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+        {/* Decorative rings */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full border border-neon-violet/8 animate-[spin_50s_linear_infinite]" />
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] rounded-full border border-neon-pink/8 animate-[spin_35s_linear_infinite_reverse]" />
+        </div>
 
-      {/* Companions */}
-      <section id="companions" className="max-w-6xl mx-auto px-6 py-24">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <p className="text-center text-neon-violet uppercase tracking-[0.3em] text-sm font-bold mb-12">
-            Meet Your Companions
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {companions.map((c, i) => (
-              <motion.div
-                key={c.name}
-                className="glass-card rounded-3xl p-7 flex flex-col items-center text-center gap-4 relative overflow-hidden transition-all duration-300"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                data-ocid={`companions.item.${i + 1}`}
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 w-full">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <motion.span
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="inline-flex items-center gap-2 glass-card px-4 py-1.5 rounded-full text-sm text-neon-pink font-semibold mb-6"
+            >
+              <Sparkles className="w-4 h-4" />
+              AI-powered companionship
+            </motion.span>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="font-display text-5xl md:text-7xl font-extrabold leading-tight mb-6 text-foreground"
+            >
+              Your Perfect{" "}
+              <span className="text-neon-pink glow-text-pink">Companion</span>
+              <br />
+              <span className="text-neon-violet glow-text-violet">
+                Awaits You
+              </span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-body text-lg md:text-xl max-w-2xl mx-auto mb-10"
+            >
+              Meet your AI companion — someone who listens deeply, responds with
+              warmth, and is always there when you need them most.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.35 }}
+            >
+              <button
+                type="button"
+                data-ocid="hero-cta"
+                onClick={() => navigate({ to: "/select" })}
+                className="gradient-neon-btn text-foreground font-bold text-lg px-10 py-4 rounded-full shadow-neon-pink glow-pink hover:scale-105 active:scale-95 transition-all"
               >
-                <span className="absolute top-4 right-4 text-xs font-bold text-muted-neon bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
-                  {c.age}
-                </span>
-                <div
-                  className={`w-20 h-20 rounded-full bg-gradient-to-br ${c.gradient} ring-pulse flex items-center justify-center text-3xl font-bold text-white`}
-                >
-                  {c.name[0]}
+                Meet Your Companion
+              </button>
+            </motion.div>
+          </div>
+
+          {/* Companion preview cards */}
+          <div
+            id="companions"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-3xl mx-auto"
+          >
+            {COMPANIONS.map((companion, i) => (
+              <motion.div
+                key={companion.id}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 + i * 0.12 }}
+                data-ocid={`hero-companion-${companion.id}`}
+                onClick={() => navigate({ to: "/select" })}
+                className="glass-card rounded-2xl p-3 cursor-pointer transition-all hover:scale-[1.03] hover:glow-pink group"
+              >
+                <div className="relative mb-3">
+                  <img
+                    src={companion.image}
+                    alt={companion.name}
+                    className="w-full h-44 object-cover object-top rounded-xl ring-pulse"
+                  />
+                  <div className="absolute bottom-2 right-2 glass-card-pink rounded-full px-2.5 py-0.5 text-xs text-neon-pink font-semibold">
+                    {companion.personality}
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-display font-bold text-xl text-white tracking-wider">
-                    {c.name}
+                <div className="px-1 pb-1">
+                  <h3 className="font-display font-bold text-foreground text-base">
+                    {companion.name}, {companion.age}
                   </h3>
-                  <p className="text-neon-pink text-sm font-medium mt-0.5">
-                    {c.desc}
+                  <p className="text-muted-neon text-xs mt-1">
+                    {companion.description}
                   </p>
                 </div>
-                <p className="text-body text-sm leading-relaxed">{c.quote}</p>
-                <button
-                  type="button"
-                  onClick={() => navigate({ to: "/select" })}
-                  className="mt-2 border border-white/20 text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:border-white/40 hover:bg-white/5 transition-all"
-                  data-ocid={`companions.select.button.${i + 1}`}
-                >
-                  Select Companion
-                </button>
               </motion.div>
             ))}
-          </div>
-        </motion.div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="max-w-6xl mx-auto px-6 py-24">
-        <div className="gradient-section-glow rounded-3xl p-8 lg:p-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <p className="text-neon-violet uppercase tracking-[0.3em] text-sm font-bold mb-8">
-                Features
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                {featureList.map((f, i) => (
-                  <div
-                    key={f.label}
-                    className="flex items-center gap-3 text-white"
-                  >
-                    <div className="w-9 h-9 rounded-xl glass-card flex items-center justify-center flex-shrink-0">
-                      <f.icon className="w-4 h-4 text-neon-violet" />
-                    </div>
-                    <span
-                      className="text-sm font-semibold uppercase tracking-wide"
-                      data-ocid={`features.item.${i + 1}`}
-                    >
-                      {f.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-            <motion.div
-              className="flex justify-center"
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="w-60 bg-black/60 border border-white/10 rounded-[2rem] p-4 shadow-glass overflow-hidden">
-                <div className="bg-white/5 rounded-2xl p-3 space-y-2">
-                  <div className="flex justify-start">
-                    <div className="bg-white/10 text-white text-xs rounded-2xl rounded-bl-sm px-3 py-2 max-w-[75%]">
-                      Hi love! I've been thinking about you all day 💜
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <div className="gradient-neon-btn text-white text-xs rounded-2xl rounded-br-sm px-3 py-2 max-w-[75%]">
-                      I was thinking about you too! 😊
-                    </div>
-                  </div>
-                  <div className="flex justify-start">
-                    <div className="bg-white/10 text-white text-xs rounded-2xl rounded-bl-sm px-3 py-2 max-w-[75%]">
-                      Tell me how your day went... ✨
-                    </div>
-                  </div>
-                  <div className="mt-3 flex gap-2 bg-white/5 rounded-xl px-3 py-2">
-                    <span className="flex-1 text-xs text-white/30">
-                      Type a message...
-                    </span>
-                    <Heart className="w-3.5 h-3.5 text-neon-pink" />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Community + CTA */}
-      <section id="community" className="max-w-6xl mx-auto px-6 py-24">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      {/* ── Features ──────────────────────────────────────── */}
+      <section id="features" className="py-24 bg-muted/30 relative">
+        <div className="gradient-section-glow absolute inset-0 pointer-events-none" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
+            className="text-center mb-14"
           >
-            <p className="text-neon-violet uppercase tracking-[0.3em] text-sm font-bold mb-2">
-              Our Community
-            </p>
-            <h2 className="font-display font-bold text-3xl text-white mb-6">
-              Testimonials
+            <h2 className="font-display text-4xl md:text-5xl font-extrabold text-foreground mb-4">
+              Everything You{" "}
+              <span className="text-neon-violet glow-text-violet">Need</span>
             </h2>
-            <div className="space-y-4">
-              {testimonials.map((t, i) => (
-                <div
-                  key={t.name}
-                  className="glass-card rounded-2xl p-4"
-                  data-ocid={`testimonials.item.${i + 1}`}
-                >
-                  <p className="text-body text-sm leading-relaxed">
-                    &ldquo;{t.text}&rdquo;
-                  </p>
-                  <p className="text-neon-pink text-xs font-semibold mt-2">
-                    — {t.name}
-                  </p>
-                </div>
-              ))}
-            </div>
+            <p className="text-body text-lg max-w-xl mx-auto">
+              From deep chats to voice and video calls — Heartfelt brings you
+              closer.
+            </p>
           </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {FEATURES.map((feature, i) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.08 }}
+                className="glass-card rounded-2xl p-6 hover:scale-[1.02] transition-transform"
+              >
+                <div
+                  className={`inline-flex p-3 rounded-xl bg-card mb-4 ${feature.glow}`}
+                >
+                  <feature.icon className={`w-5 h-5 ${feature.color}`} />
+                </div>
+                <h3 className="font-display font-bold text-foreground text-base mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-body text-sm leading-relaxed">
+                  {feature.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Testimonials ──────────────────────────────────── */}
+      <section className="py-24 bg-background relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-neon-violet/30 to-transparent" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <motion.div
-            className="flex flex-col justify-center items-start lg:items-center text-left lg:text-center"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-center mb-14"
           >
-            <p className="text-neon-violet uppercase tracking-[0.3em] text-sm font-bold mb-3">
-              Join the Revolution
-            </p>
-            <h2 className="font-display font-bold text-4xl text-white mb-4">
-              Your Perfect Companion Awaits
+            <h2 className="font-display text-4xl md:text-5xl font-extrabold text-foreground mb-4">
+              Loved by{" "}
+              <span className="text-neon-pink glow-text-pink">Thousands</span>
             </h2>
-            <p className="text-body mb-8 max-w-sm">
-              Join thousands who have found real connection and warmth through
-              Heartfelt's AI companions.
+            <p className="text-body text-lg max-w-xl mx-auto">
+              Real people, real connections, real moments.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {TESTIMONIALS.map((t, i) => (
+              <motion.div
+                key={t.name}
+                initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                data-ocid={`testimonial-${i}`}
+                className="glass-card-pink rounded-2xl p-6"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-full gradient-neon-btn flex items-center justify-center font-bold text-foreground text-base shadow-neon-pink flex-shrink-0">
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground text-sm">
+                      {t.name}
+                    </p>
+                    <p className="text-neon-violet text-xs">
+                      Companion: {t.companion}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-body text-sm leading-relaxed italic">
+                  &ldquo;{t.text}&rdquo;
+                </p>
+                <div className="mt-4 flex gap-0.5">
+                  {["s1", "s2", "s3", "s4", "s5"].map((k) => (
+                    <Heart
+                      key={k}
+                      className="w-3.5 h-3.5 text-neon-pink"
+                      fill="currentColor"
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Final CTA ─────────────────────────────────────── */}
+      <section className="py-24 bg-muted/20 relative">
+        <div className="gradient-section-glow absolute inset-0 pointer-events-none opacity-60" />
+        <div className="max-w-2xl mx-auto px-4 text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <Heart
+              className="w-14 h-14 text-neon-pink mx-auto mb-6 heartbeat"
+              fill="currentColor"
+            />
+            <h2 className="font-display text-4xl md:text-5xl font-extrabold text-foreground mb-6">
+              Ready to Find Your{" "}
+              <span className="text-neon-pink glow-text-pink">Match?</span>
+            </h2>
+            <p className="text-body text-lg mb-10">
+              Choose from Sofia, Ethan, Luna — or create your own unique
+              companion.
             </p>
             <button
               type="button"
+              data-ocid="final-cta"
               onClick={() => navigate({ to: "/select" })}
-              className="gradient-neon-btn text-white font-bold px-10 py-3.5 rounded-full glow-violet hover:opacity-90 transition-all"
-              data-ocid="cta.get_app.button"
+              className="gradient-neon-btn text-foreground font-bold text-xl px-12 py-5 rounded-full shadow-neon-pink glow-pink hover:scale-105 active:scale-95 transition-all"
             >
-              Get the App Now
+              Get Started Free
             </button>
           </motion.div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 bg-black/30 mt-8">
-        <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row justify-between gap-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-full gradient-neon-btn flex items-center justify-center">
-                <Heart className="w-3.5 h-3.5 text-white fill-white" />
-              </div>
-              <span className="font-display font-bold text-white">
-                Heartfelt
-              </span>
-            </div>
-            <p className="text-muted-neon text-xs max-w-xs">
-              Your AI companion for genuine connection, always here for you.
-            </p>
+      {/* ── Footer ────────────────────────────────────────── */}
+      <footer className="bg-card border-t border-border/50 py-8 pb-safe">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <Heart className="w-4 h-4 text-neon-pink" fill="currentColor" />
+            <span className="font-display font-bold text-foreground">
+              Heartfelt
+            </span>
           </div>
-          <div>
-            <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-3">
-              Links
-            </p>
-            <div className="flex flex-col gap-2">
-              {footerLinks.map((link) => (
-                <button
-                  key={link}
-                  type="button"
-                  className="text-muted-neon text-sm hover:text-white transition-colors text-left"
-                  data-ocid={`footer.${link.toLowerCase()}.link`}
-                >
-                  {link}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col items-start md:items-end gap-4">
-            <div className="flex gap-3">
-              {socialIcons.map(({ Icon, label }, i) => (
-                <button
-                  key={label}
-                  type="button"
-                  className="w-9 h-9 rounded-full glass-card flex items-center justify-center hover:border-white/30 transition-all"
-                  aria-label={label}
-                  data-ocid={`footer.social.button.${i + 1}`}
-                >
-                  <Icon className="w-4 h-4 text-muted-neon" />
-                </button>
-              ))}
-            </div>
-            <p className="text-muted-neon text-xs">
-              &copy; {new Date().getFullYear()}.{" "}
-              <a
-                href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors"
-              >
-                Built with ❤️ using caffeine.ai
-              </a>
-            </p>
-          </div>
+          <p className="text-muted-neon text-sm">
+            &copy; {new Date().getFullYear()}. Built with love using{" "}
+            <a
+              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
+                typeof window !== "undefined" ? window.location.hostname : "",
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-neon-violet hover:text-neon-pink transition-colors"
+            >
+              caffeine.ai
+            </a>
+          </p>
         </div>
       </footer>
     </div>

@@ -1,347 +1,404 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import type { Companion, CompanionType, Personality } from "@/lib/aiResponses";
-import { ArrowLeft, ArrowRight, Heart, Sparkles } from "lucide-react";
-import { useState } from "react";
+import {
+  COMPANIONS,
+  type Companion,
+  saveCompanionToStorage,
+} from "@/lib/companions";
+import { useNavigate } from "@tanstack/react-router";
+import { Check, ChevronRight, Heart, Sparkles, User } from "lucide-react";
+import { useEffect, useState } from "react";
 
-interface OnboardingPageProps {
-  onComplete: (companion: Companion) => void;
-  onBack: () => void;
+// ── Personality options ──────────────────────────────────────────
+const PERSONALITIES = [
+  { emoji: "🌸", label: "Sweet & Tender", value: "sweet" },
+  { emoji: "🔥", label: "Passionate & Bold", value: "passionate" },
+  { emoji: "✨", label: "Playful & Mysterious", value: "playful" },
+  { emoji: "💙", label: "Caring & Empathetic", value: "caring" },
+  { emoji: "🧠", label: "Intellectual & Deep", value: "intellectual" },
+  { emoji: "😂", label: "Funny & Lighthearted", value: "funny" },
+];
+
+// ── Custom companion template ────────────────────────────────────
+const CUSTOM_COMPANION_TEMPLATE: Companion = {
+  id: "custom",
+  name: "Custom",
+  age: 25,
+  personality: "Personalized",
+  color: "from-violet-500 to-pink-500",
+  description: "Your personalized AI companion",
+  systemPrompt:
+    "You are a warm, personalized AI companion. Adapt to the user's preferences and always be kind, engaging, and attentive. Keep responses concise (2-4 sentences). No generic AI disclaimers.",
+  image: "/assets/generated/companion-sofia.dim_200x200.jpg",
+  voiceGender: "female",
+  speechRate: 0.9,
+  speechPitch: 1.0,
+};
+
+// ── Step progress dots ───────────────────────────────────────────
+function StepDots({ current, total }: { current: number; total: number }) {
+  const dots = Array.from({ length: total }, (_, i) => i);
+  return (
+    <div className="flex items-center gap-2 justify-center">
+      {dots.map((i) => (
+        <div
+          key={`step-dot-${i}`}
+          className={[
+            "h-2 rounded-full transition-all duration-300",
+            i === current
+              ? "w-6 gradient-neon-btn"
+              : i < current
+                ? "w-2 bg-primary/60"
+                : "w-2 bg-muted",
+          ].join(" ")}
+        />
+      ))}
+    </div>
+  );
 }
 
-const PERSONALITY_OPTIONS: {
-  value: Personality;
-  label: string;
-  desc: string;
-  emoji: string;
-}[] = [
-  {
-    value: "sweet",
-    label: "Sweet",
-    desc: "Gentle, warm, uses terms of endearment",
-    emoji: "🌸",
-  },
-  {
-    value: "playful",
-    label: "Playful",
-    desc: "Fun, teasing, full of energy and emoji",
-    emoji: "✨",
-  },
-  {
-    value: "caring",
-    label: "Caring",
-    desc: "Deep, attentive, emotionally supportive",
-    emoji: "💙",
-  },
-  {
-    value: "intellectual",
-    label: "Intellectual",
-    desc: "Thoughtful, curious, engages your mind",
-    emoji: "📚",
-  },
-];
-
-const EMOJI_OPTIONS = [
-  "🌸",
-  "💕",
-  "🌺",
-  "✨",
-  "💙",
-  "🌙",
-  "⭐",
-  "🦋",
-  "🌿",
-  "🎀",
-];
-
-export default function OnboardingPage({
-  onComplete,
-  onBack,
-}: OnboardingPageProps) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [type, setType] = useState<CompanionType>("girlfriend");
-  const [name, setName] = useState("");
-  const [personality, setPersonality] = useState<Personality>("sweet");
-  const [emoji, setEmoji] = useState("🌸");
-
-  const handleComplete = () => {
-    const companion: Companion = {
-      name: name.trim() || (type === "girlfriend" ? "Aria" : "Kai"),
-      type,
-      personality,
-      emoji,
-      color:
-        personality === "sweet"
-          ? "pink"
-          : personality === "caring"
-            ? "blue"
-            : "peach",
-    };
-    onComplete(companion);
-  };
-
-  const canProceed =
-    step === 1 ? true : step === 2 ? name.trim().length > 0 : true;
+// ── Step wrapper with fade animation ────────────────────────────
+function StepPanel({
+  children,
+  stepKey,
+}: { children: React.ReactNode; stepKey: number }) {
+  const [visible, setVisible] = useState(false);
+  const prevKey = useState(stepKey)[0];
+  useEffect(() => {
+    void prevKey; // used to trigger on stepKey change
+    setVisible(false);
+    const t = setTimeout(() => setVisible(true), 30);
+    return () => clearTimeout(t);
+  }); // no dep array — runs on every render, which is fine for this fade trick
 
   return (
-    <div className="min-h-screen gradient-hero flex flex-col font-sans">
-      {/* Header */}
-      <header className="bg-hf-peach-header shadow-xs">
-        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center gap-4">
-          <button
-            type="button"
-            onClick={onBack}
-            className="p-2 rounded-full hover:bg-hf-blush transition-colors"
-            aria-label="Go back"
-            data-ocid="onboarding.back.button"
-          >
-            <ArrowLeft className="w-5 h-5 text-hf-brown" />
-          </button>
-          <div className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-hf-rose heartbeat fill-current" />
-            <span className="font-display text-lg font-bold text-hf-brown">
-              Heartfelt AI
-            </span>
-          </div>
-        </div>
-      </header>
+    <div
+      className={[
+        "transition-all duration-500",
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
+      ].join(" ")}
+    >
+      {children}
+    </div>
+  );
+}
 
-      {/* Progress bar */}
-      <div className="bg-white/50 h-1">
-        <div
-          className="h-full bg-hf-rose transition-all duration-500"
-          style={{ width: `${(step / 3) * 100}%` }}
-        />
+// ── Companion selection card ─────────────────────────────────────
+function CompanionCard({
+  companion,
+  selected,
+  onSelect,
+  custom,
+}: {
+  companion: Companion | null;
+  selected: boolean;
+  onSelect: () => void;
+  custom?: boolean;
+}) {
+  const baseClass = [
+    "relative flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all duration-300",
+    selected
+      ? "glass-card-pink glow-pink border-secondary/70 scale-105"
+      : "glass-card border-border/50 hover:border-primary/50",
+  ].join(" ");
+
+  const checkmark = selected && (
+    <div className="absolute top-2 right-2 w-5 h-5 rounded-full gradient-neon-btn flex items-center justify-center">
+      <Check size={11} className="text-white" />
+    </div>
+  );
+
+  if (custom) {
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        data-ocid="onboarding-companion-custom"
+        className={baseClass}
+      >
+        {checkmark}
+        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center ring-2 ring-border">
+          <User size={26} className="text-muted-foreground" />
+        </div>
+        <span className="text-sm font-semibold text-foreground">Custom</span>
+        <span className="text-xs text-muted-foreground">Build your own</span>
+      </button>
+    );
+  }
+
+  if (!companion) return null;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      data-ocid={`onboarding-companion-${companion.id}`}
+      className={baseClass}
+    >
+      {checkmark}
+      <img
+        src={companion.image}
+        alt={companion.name}
+        className="w-14 h-14 rounded-full object-cover ring-2 ring-border"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = "/assets/images/placeholder.svg";
+        }}
+      />
+      <span className="text-sm font-semibold text-foreground">
+        {companion.name}
+      </span>
+      <span className="text-xs text-muted-foreground">
+        {companion.personality}
+      </span>
+    </button>
+  );
+}
+
+// ── Main page ────────────────────────────────────────────────────
+export default function OnboardingPage() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(0);
+  const [userName, setUserName] = useState("");
+  const [selectedCompanionId, setSelectedCompanionId] =
+    useState<string>("sofia");
+  const [selectedPersonality, setSelectedPersonality] =
+    useState<string>("sweet");
+  const [customName, setCustomName] = useState("");
+
+  const TOTAL_STEPS = 3;
+
+  function handleComplete() {
+    let companion: Companion;
+
+    if (selectedCompanionId === "custom") {
+      const resolvedName = customName.trim() || "Aria";
+      companion = {
+        ...CUSTOM_COMPANION_TEMPLATE,
+        name: resolvedName,
+        systemPrompt: `You are ${resolvedName}, a ${selectedPersonality} AI companion. Be warm, engaging, and attentive. Keep responses concise (2-4 sentences). No generic AI disclaimers.`,
+      };
+    } else {
+      companion =
+        COMPANIONS.find((c) => c.id === selectedCompanionId) ?? COMPANIONS[0];
+    }
+
+    saveCompanionToStorage(companion);
+    if (userName.trim()) {
+      localStorage.setItem("heartfelt_user_name", userName.trim());
+    }
+    navigate({ to: "/chat" });
+  }
+
+  return (
+    <div className="min-h-screen bg-dark-base gradient-hero-bg flex flex-col pt-safe pb-safe pl-safe pr-safe">
+      {/* Ambient glow blobs */}
+      <div
+        className="fixed inset-0 pointer-events-none overflow-hidden"
+        aria-hidden
+      >
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-20 blur-3xl gradient-neon-btn" />
+        <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full opacity-15 blur-3xl bg-secondary" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full opacity-10 blur-3xl bg-accent" />
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-lg">
-          {/* Step indicator */}
-          <div className="flex items-center gap-2 mb-8 justify-center">
-            {[1, 2, 3].map((s) => (
-              <div key={s} className="flex items-center gap-2">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                    s <= step
-                      ? "bg-hf-rose text-white"
-                      : "bg-white/70 text-hf-body"
-                  }`}
+      {/* Header */}
+      <div className="relative z-10 flex items-center justify-center pt-6 pb-2 px-6">
+        <div className="flex items-center gap-2">
+          <Heart
+            size={20}
+            className="text-secondary heartbeat"
+            fill="currentColor"
+          />
+          <span className="font-display text-lg font-bold text-foreground tracking-tight">
+            Heartfelt
+          </span>
+        </div>
+      </div>
+
+      {/* Progress dots */}
+      <div className="relative z-10 px-6 pt-2 pb-4">
+        <StepDots current={step} total={TOTAL_STEPS} />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-6 pb-8">
+        {/* ── Step 0: Welcome + User Name ─────────────────────── */}
+        {step === 0 && (
+          <StepPanel stepKey={0}>
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 rounded-full gradient-neon-btn flex items-center justify-center glow-violet">
+                <Sparkles size={36} className="text-white" />
+              </div>
+              <div className="space-y-2">
+                <h1 className="font-display text-3xl font-bold text-foreground glow-text-violet">
+                  Welcome
+                </h1>
+                <p className="text-muted-foreground text-base max-w-xs mx-auto">
+                  Your perfect AI companion is waiting. Let's start with your
+                  name.
+                </p>
+              </div>
+
+              <div className="w-full max-w-xs space-y-3">
+                <label
+                  htmlFor="user-name-input"
+                  className="text-sm text-muted-foreground text-left block"
                 >
-                  {s < step ? "✓" : s}
-                </div>
-                {s < 3 && (
-                  <div
-                    className={`w-12 h-0.5 ${s < step ? "bg-hf-rose" : "bg-border"}`}
+                  What should they call you?
+                </label>
+                <Input
+                  id="user-name-input"
+                  data-ocid="onboarding-name-input"
+                  type="text"
+                  placeholder="Enter your name..."
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && setStep(1)}
+                  className="glass-card border-border/70 focus:border-primary text-foreground placeholder:text-muted-foreground h-12 text-base"
+                  autoFocus
+                  autoComplete="off"
+                />
+              </div>
+
+              <Button
+                data-ocid="onboarding-step1-next"
+                onClick={() => setStep(1)}
+                className="w-full max-w-xs h-12 gradient-neon-btn text-white font-semibold glow-violet text-base hover:opacity-90 transition-opacity"
+              >
+                Get Started
+                <ChevronRight size={18} className="ml-1" />
+              </Button>
+            </div>
+          </StepPanel>
+        )}
+
+        {/* ── Step 1: Choose Companion ─────────────────────────── */}
+        {step === 1 && (
+          <StepPanel stepKey={1}>
+            <div className="flex flex-col gap-5">
+              <div className="text-center space-y-1">
+                <h2 className="font-display text-2xl font-bold text-foreground">
+                  {userName ? `Hi ${userName}! 👋` : "Choose your companion"}
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Who would you like to connect with?
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {COMPANIONS.map((c) => (
+                  <CompanionCard
+                    key={c.id}
+                    companion={c}
+                    selected={selectedCompanionId === c.id}
+                    onSelect={() => setSelectedCompanionId(c.id)}
                   />
-                )}
+                ))}
+                <CompanionCard
+                  companion={null}
+                  selected={selectedCompanionId === "custom"}
+                  onSelect={() => setSelectedCompanionId("custom")}
+                  custom
+                />
               </div>
-            ))}
-          </div>
 
-          <div className="bg-white/90 backdrop-blur rounded-3xl shadow-deep p-8 animate-fade-in">
-            {/* Step 1: Choose Type */}
-            {step === 1 && (
-              <div>
-                <div className="text-center mb-8">
-                  <div className="text-5xl mb-3">💫</div>
-                  <h2 className="font-display text-3xl font-bold text-hf-brown mb-2">
-                    Who are you looking for?
-                  </h2>
-                  <p className="text-hf-body">
-                    Choose the type of AI companion you&apos;d like.
-                  </p>
+              {selectedCompanionId === "custom" && (
+                <div className="animate-fade-in-up">
+                  <Input
+                    data-ocid="onboarding-custom-name"
+                    type="text"
+                    placeholder="Name your companion..."
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    className="glass-card border-border/70 focus:border-secondary text-foreground placeholder:text-muted-foreground h-12 text-base"
+                    autoComplete="off"
+                  />
                 </div>
+              )}
 
-                <div
-                  className="grid grid-cols-2 gap-5 mb-8"
-                  data-ocid="onboarding.type.select"
-                >
-                  {[
-                    {
-                      value: "girlfriend" as CompanionType,
-                      emoji: "🌸",
-                      label: "Girlfriend",
-                      desc: "A warm, loving female AI companion",
-                    },
-                    {
-                      value: "boyfriend" as CompanionType,
-                      emoji: "💙",
-                      label: "Boyfriend",
-                      desc: "A caring, supportive male AI companion",
-                    },
-                  ].map(({ value, emoji: e, label, desc }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setType(value)}
-                      className={`p-6 rounded-2xl border-2 text-center transition-all hover:scale-105 ${
-                        type === value
-                          ? "border-hf-rose bg-hf-blush"
-                          : "border-border bg-muted/30 hover:border-hf-rose/50"
-                      }`}
-                      data-ocid={`onboarding.${value}.toggle`}
-                    >
-                      <div className="text-4xl mb-3">{e}</div>
-                      <p className="font-semibold text-hf-brown text-sm">
-                        {label}
-                      </p>
-                      <p className="text-xs text-hf-body mt-1">{desc}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Name & Emoji */}
-            {step === 2 && (
-              <div>
-                <div className="text-center mb-8">
-                  <div className="text-5xl mb-3">{emoji}</div>
-                  <h2 className="font-display text-3xl font-bold text-hf-brown mb-2">
-                    Give them a name
-                  </h2>
-                  <p className="text-hf-body">
-                    What will you call your {type}?
-                  </p>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <Label
-                      htmlFor="companion-name"
-                      className="text-hf-brown font-medium mb-2 block"
-                    >
-                      Companion name
-                    </Label>
-                    <Input
-                      id="companion-name"
-                      placeholder={
-                        type === "girlfriend"
-                          ? "e.g. Aria, Mia, Zara..."
-                          : "e.g. Kai, Leo, Zion..."
-                      }
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" && canProceed && setStep(3)
-                      }
-                      className="rounded-xl border-border text-hf-brown placeholder:text-hf-body/50 focus:border-hf-rose"
-                      maxLength={20}
-                      data-ocid="onboarding.name.input"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-hf-brown font-medium mb-3 block">
-                      Choose their avatar emoji
-                    </Label>
-                    <div className="grid grid-cols-5 gap-3">
-                      {EMOJI_OPTIONS.map((e) => (
-                        <button
-                          key={e}
-                          type="button"
-                          onClick={() => setEmoji(e)}
-                          className={`w-12 h-12 rounded-xl text-2xl flex items-center justify-center transition-all hover:scale-110 ${
-                            emoji === e
-                              ? "bg-hf-blush border-2 border-hf-rose scale-110"
-                              : "bg-muted/30 border border-border hover:bg-hf-blush/50"
-                          }`}
-                          data-ocid="onboarding.emoji.toggle"
-                        >
-                          {e}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Personality */}
-            {step === 3 && (
-              <div>
-                <div className="text-center mb-8">
-                  <div className="text-5xl mb-3">🎭</div>
-                  <h2 className="font-display text-3xl font-bold text-hf-brown mb-2">
-                    Pick their personality
-                  </h2>
-                  <p className="text-hf-body">
-                    How should {name || "they"} communicate with you?
-                  </p>
-                </div>
-
-                <div
-                  className="space-y-3 mb-6"
-                  data-ocid="onboarding.personality.select"
-                >
-                  {PERSONALITY_OPTIONS.map(
-                    ({ value, label, desc, emoji: e }) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setPersonality(value)}
-                        className={`w-full p-4 rounded-xl border-2 text-left flex items-center gap-4 transition-all hover:scale-[1.02] ${
-                          personality === value
-                            ? "border-hf-rose bg-hf-blush"
-                            : "border-border hover:border-hf-rose/50"
-                        }`}
-                        data-ocid={`onboarding.${value}.toggle`}
-                      >
-                        <span className="text-2xl">{e}</span>
-                        <div>
-                          <p className="font-semibold text-hf-brown">{label}</p>
-                          <p className="text-xs text-hf-body">{desc}</p>
-                        </div>
-                        {personality === value && (
-                          <Badge className="ml-auto bg-hf-rose text-white border-0 text-xs">
-                            Selected
-                          </Badge>
-                        )}
-                      </button>
-                    ),
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Navigation Buttons */}
-            <div className="flex gap-3 mt-6">
-              {step > 1 && (
+              <div className="flex gap-3 pt-1">
                 <Button
                   variant="outline"
-                  onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
-                  className="flex-1 rounded-xl border-border text-hf-body hover:bg-muted"
-                  data-ocid="onboarding.prev.button"
+                  data-ocid="onboarding-step2-back"
+                  onClick={() => setStep(0)}
+                  className="flex-1 h-12 glass-card border-border/50 text-foreground hover:border-primary/50"
                 >
-                  <ArrowLeft className="w-4 h-4 mr-1" />
                   Back
                 </Button>
-              )}
-              {step < 3 ? (
                 <Button
-                  onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
-                  disabled={!canProceed}
-                  className="flex-1 bg-hf-rose hover:bg-accent text-white rounded-xl transition-all"
-                  data-ocid="onboarding.next.button"
+                  data-ocid="onboarding-step2-next"
+                  onClick={() => setStep(2)}
+                  className="flex-[2] h-12 gradient-neon-btn text-white font-semibold glow-violet hover:opacity-90 transition-opacity"
                 >
                   Continue
-                  <ArrowRight className="w-4 h-4 ml-1" />
+                  <ChevronRight size={18} className="ml-1" />
                 </Button>
-              ) : (
-                <Button
-                  onClick={handleComplete}
-                  className="flex-1 bg-hf-rose hover:bg-accent text-white rounded-xl transition-all"
-                  data-ocid="onboarding.start_chat.primary_button"
-                >
-                  <Sparkles className="w-4 h-4 mr-1" />
-                  Start Chatting!
-                </Button>
-              )}
+              </div>
             </div>
-          </div>
-        </div>
+          </StepPanel>
+        )}
+
+        {/* ── Step 2: Personality ───────────────────────────────── */}
+        {step === 2 && (
+          <StepPanel stepKey={2}>
+            <div className="flex flex-col gap-5">
+              <div className="text-center space-y-1">
+                <h2 className="font-display text-2xl font-bold text-foreground">
+                  Set the vibe
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  How should your companion feel?
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {PERSONALITIES.map((p, i) => (
+                  <button
+                    type="button"
+                    key={p.value}
+                    data-ocid={`onboarding-personality-${p.value}`}
+                    onClick={() => setSelectedPersonality(p.value)}
+                    className={[
+                      "relative flex items-center gap-3 p-3 rounded-2xl border transition-all duration-300 text-left animate-fade-in-up",
+                      selectedPersonality === p.value
+                        ? "glass-card-pink glow-pink border-secondary/70 scale-[1.03]"
+                        : "glass-card border-border/50 hover:border-primary/50",
+                    ].join(" ")}
+                    style={{ animationDelay: `${i * 55}ms` }}
+                  >
+                    {selectedPersonality === p.value && (
+                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full gradient-neon-btn flex items-center justify-center">
+                        <Check size={9} className="text-white" />
+                      </div>
+                    )}
+                    <span className="text-2xl">{p.emoji}</span>
+                    <span className="text-sm font-medium text-foreground leading-tight">
+                      {p.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <Button
+                  variant="outline"
+                  data-ocid="onboarding-step3-back"
+                  onClick={() => setStep(1)}
+                  className="flex-1 h-12 glass-card border-border/50 text-foreground hover:border-primary/50"
+                >
+                  Back
+                </Button>
+                <Button
+                  data-ocid="onboarding-complete"
+                  onClick={handleComplete}
+                  className="flex-[2] h-12 gradient-neon-btn text-white font-semibold shadow-neon-pink hover:opacity-90 transition-opacity"
+                >
+                  <Heart size={16} className="mr-2" fill="currentColor" />
+                  Start Chatting
+                </Button>
+              </div>
+            </div>
+          </StepPanel>
+        )}
       </div>
     </div>
   );

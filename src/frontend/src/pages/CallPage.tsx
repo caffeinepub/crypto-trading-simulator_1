@@ -1,6 +1,7 @@
 import { useSpeech, useVoiceRecognition } from "@/hooks/useSpeech";
 import {
   type Companion,
+  buildCallGreeting,
   getAIResponse,
   getCompanionFromStorage,
 } from "@/lib/companions";
@@ -9,23 +10,19 @@ import { Mic, MicOff, PhoneOff, Send } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const WAVEFORM_HEIGHTS_IDLE = [4, 4, 4, 4, 4, 4, 4];
-const WAVEFORM_HEIGHTS_ACTIVE = [8, 14, 20, 28, 20, 14, 8];
-
 function WaveformBars({ active }: { active: boolean }) {
-  const heights = active ? WAVEFORM_HEIGHTS_ACTIVE : WAVEFORM_HEIGHTS_IDLE;
   return (
-    <div className="flex items-end gap-1 h-8">
-      {heights.map((h, i) => (
+    <div className="flex items-end gap-[3px] h-8">
+      {Array.from({ length: 7 }).map((_, i) => (
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: static fixed-length array
           key={i}
           className={
             active
-              ? "waveform-bar w-1 bg-neon-cyan rounded-full"
-              : "w-1 rounded-full bg-neon-cyan/30"
+              ? "waveform-bar w-1 rounded-full bg-neon-cyan origin-bottom"
+              : "w-1 rounded-full bg-neon-cyan/25 origin-bottom"
           }
-          style={{ height: `${h}px` }}
+          style={{ height: active ? `${8 + (i % 4) * 6}px` : "4px" }}
         />
       ))}
     </div>
@@ -34,10 +31,7 @@ function WaveformBars({ active }: { active: boolean }) {
 
 function ThinkingDots() {
   return (
-    <div
-      className="flex items-center gap-1 mt-1"
-      data-ocid="call.thinking_state"
-    >
+    <div className="flex items-center gap-1" data-ocid="call.thinking_state">
       <span className="typing-dot w-1.5 h-1.5 rounded-full bg-neon-cyan/70" />
       <span className="typing-dot w-1.5 h-1.5 rounded-full bg-neon-cyan/70" />
       <span className="typing-dot w-1.5 h-1.5 rounded-full bg-neon-cyan/70" />
@@ -45,29 +39,41 @@ function ThinkingDots() {
   );
 }
 
-type CallPhase = "ringing" | "connected";
+function CallTimer({ startTime }: { startTime: number }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setElapsed(Date.now() - startTime), 1000);
+    return () => clearInterval(id);
+  }, [startTime]);
+  const secs = Math.floor(elapsed / 1000);
+  const mm = String(Math.floor(secs / 60)).padStart(2, "0");
+  const ss = String(secs % 60).padStart(2, "0");
+  return (
+    <span className="text-muted-neon text-xs font-mono tabular-nums">
+      {mm}:{ss}
+    </span>
+  );
+}
 
 export default function CallPage() {
   const navigate = useNavigate();
-  const companion = getCompanionFromStorage();
   const { speak, stop } = useSpeech();
   const { startListening, stopListening, isAvailable } = useVoiceRecognition();
 
+  const [companion, setCompanion] = useState<Companion | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [subtitle, setSubtitle] = useState("");
-  const [seconds, setSeconds] = useState(0);
-  const [phase, setPhase] = useState<CallPhase>("ringing");
+  const [userSubtitle, setUserSubtitle] = useState("");
   const [textInput, setTextInput] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [callStartTime] = useState(() => Date.now());
 
   const hasGreeted = useRef(false);
   const conversationHistory = useRef<Array<{ role: string; content: string }>>(
     [],
   );
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const speakText = useCallback(
     (text: string, comp: Companion) => {
@@ -81,11 +87,11 @@ export default function CallPage() {
   const sendMessage = useCallback(
     async (message: string, comp: Companion) => {
       if (!message.trim()) return;
-      // Stop any current speech so new reply can play
       stop();
       setIsSpeaking(false);
       setErrorMsg("");
-      setSubtitle(`You: ${message}`);
+      setUserSubtitle(message);
+      setSubtitle("");
       setIsThinking(true);
       conversationHistory.current.push({ role: "user", content: message });
       try {
@@ -100,39 +106,39 @@ export default function CallPage() {
           content: aiText,
         });
         setIsThinking(false);
+        setUserSubtitle("");
         speakText(aiText, comp);
       } catch (err) {
         setIsThinking(false);
         const msg = err instanceof Error ? err.message : "Network error";
         setErrorMsg(`AI error: ${msg}`);
         setSubtitle("");
+        setUserSubtitle("");
       }
     },
     [speakText, stop],
   );
 
+  // Greet immediately with buildCallGreeting — no API fetch, no delay
   useEffect(() => {
-    if (!companion) {
-      navigate({ to: "/select" });
+    const comp = getCompanionFromStorage();
+    if (!comp) {
+      void navigate({ to: "/select" });
       return;
     }
+    setCompanion(comp);
     if (hasGreeted.current) return;
     hasGreeted.current = true;
 
-    const ringTimer = setTimeout(() => setPhase("connected"), 1500);
-    timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
-
-    const greeting =
-      "Hey! It's so good to hear from you. How are you doing today?";
+    const greeting = buildCallGreeting(comp);
     conversationHistory.current.push({ role: "assistant", content: greeting });
-    setTimeout(() => speakText(greeting, companion), 2000);
+    // Speak immediately — no timeout delay
+    speakText(greeting, comp);
 
     return () => {
-      clearTimeout(ringTimer);
-      if (timerRef.current) clearInterval(timerRef.current);
       stop();
     };
-  }, [companion, navigate, speakText, stop]);
+  }, [navigate, speakText, stop]);
 
   const handleMicPress = useCallback(() => {
     if (!companion || isThinking) return;
@@ -141,23 +147,19 @@ export default function CallPage() {
       setIsListening(false);
       return;
     }
-    if (!isAvailable) {
-      setSubtitle("Type your message below");
-      return;
-    }
-    // Stop AI speech so user can speak
+    if (!isAvailable) return;
     stop();
     setIsSpeaking(false);
     setIsListening(true);
-    setSubtitle("Listening...");
+    setSubtitle("Listening\u2026");
     startListening(
-      async (transcript) => {
+      (transcript) => {
         setIsListening(false);
-        sendMessage(transcript, companion);
+        void sendMessage(transcript, companion);
       },
       () => {
         setIsListening(false);
-        setSubtitle("Couldn't hear you \u2014 type your message below");
+        setSubtitle("");
       },
     );
   }, [
@@ -175,52 +177,49 @@ export default function CallPage() {
     if (!companion || !textInput.trim() || isThinking) return;
     const msg = textInput.trim();
     setTextInput("");
-    sendMessage(msg, companion);
+    void sendMessage(msg, companion);
   }, [companion, isThinking, sendMessage, textInput]);
 
   const handleEndCall = useCallback(() => {
     stop();
     stopListening();
-    if (timerRef.current) clearInterval(timerRef.current);
-    navigate({ to: "/chat" });
+    void navigate({ to: "/chat" });
   }, [navigate, stop, stopListening]);
 
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
-  };
-
   const getStatusText = () => {
-    if (phase === "ringing") return "Ringing...";
-    if (isSpeaking) return "Speaking...";
-    if (isListening) return "Listening...";
-    if (isThinking) return "Getting response...";
+    if (isSpeaking) return "Speaking\u2026";
+    if (isListening) return "Listening\u2026";
+    if (isThinking) return "Getting response\u2026";
     return "Connected";
   };
 
-  if (!companion) return null;
+  if (!companion) {
+    return (
+      <div className="h-screen bg-dark-base flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div
-      className="h-screen flex flex-col items-center justify-between px-6"
+      className="h-screen flex flex-col items-center justify-between px-5"
       style={{
-        background: "linear-gradient(180deg, #06080f 0%, #0d0619 100%)",
-        paddingTop: "max(4rem, env(safe-area-inset-top, 0px))",
+        background:
+          "radial-gradient(ellipse 80% 60% at 50% 0%, oklch(0.18 0.06 296 / 0.3) 0%, transparent 60%), linear-gradient(180deg, #06080f 0%, #0d0619 100%)",
+        paddingTop: "max(3.5rem, env(safe-area-inset-top, 0px))",
         paddingBottom: "max(1.5rem, env(safe-area-inset-bottom, 0px))",
       }}
     >
-      {/* Top info */}
-      <div className="flex flex-col items-center gap-2 text-center">
-        <p className="text-muted-neon text-sm uppercase tracking-widest">
+      {/* Header */}
+      <div className="flex flex-col items-center gap-1 text-center">
+        <p className="text-muted-neon text-xs uppercase tracking-widest">
           AI Voice Call
         </p>
         <AnimatePresence mode="wait">
           <motion.p
             key={getStatusText()}
-            className={`text-sm font-mono ${
-              phase === "connected" ? "text-neon-cyan" : "text-white/50"
-            }`}
+            className="text-sm font-mono text-neon-cyan"
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
@@ -230,53 +229,47 @@ export default function CallPage() {
             {getStatusText()}
           </motion.p>
         </AnimatePresence>
-        <p className="text-white/30 text-xs font-mono">{formatTime(seconds)}</p>
+        <CallTimer startTime={callStartTime} />
         {errorMsg && (
-          <p className="text-red-400 text-xs max-w-xs text-center">
+          <p className="text-destructive text-xs max-w-xs text-center mt-1">
             {errorMsg}
           </p>
         )}
       </div>
 
-      {/* Avatar */}
-      <div className="flex flex-col items-center gap-6">
-        <motion.div
-          className={`w-36 h-36 rounded-full bg-gradient-to-br ${
-            companion.color
-          } overflow-hidden ring-pulse`}
-          animate={
-            phase === "ringing"
-              ? { scale: [1, 1.06, 1] }
-              : isSpeaking
-                ? { scale: [1, 1.04, 1] }
-                : { scale: 1 }
-          }
-          transition={{
-            duration: phase === "ringing" ? 1.2 : 0.8,
-            repeat:
-              phase === "ringing" || isSpeaking ? Number.POSITIVE_INFINITY : 0,
-          }}
-          data-ocid="call.avatar.panel"
-        >
-          {companion.image ? (
-            <img
-              src={companion.image}
-              alt={companion.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-white">
-              {companion.name[0]}
-            </div>
-          )}
-        </motion.div>
+      {/* Avatar + waveform */}
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative">
+          <div
+            className={`w-36 h-36 rounded-full overflow-hidden ${isSpeaking ? "ring-pulse-speaking" : "ring-pulse"}`}
+            data-ocid="call.avatar.panel"
+          >
+            {companion.image ? (
+              <img
+                src={companion.image}
+                alt={companion.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div
+                className={`w-full h-full bg-gradient-to-br ${companion.color} flex items-center justify-center`}
+              >
+                <span className="text-5xl font-bold text-white">
+                  {companion.name[0]}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
 
         <div className="text-center">
-          <h2 className="font-display font-bold text-2xl text-white">
+          <h2 className="font-display font-bold text-2xl text-foreground">
             {companion.name}
           </h2>
           {isThinking ? (
-            <ThinkingDots />
+            <div className="flex justify-center mt-2">
+              <ThinkingDots />
+            </div>
           ) : (
             <p className="text-body text-sm mt-1">{companion.personality}</p>
           )}
@@ -286,105 +279,122 @@ export default function CallPage() {
       </div>
 
       {/* Subtitles */}
-      <AnimatePresence mode="wait">
-        {subtitle && (
-          <motion.div
-            key={subtitle}
-            className="glass-card rounded-2xl px-5 py-3 max-w-sm text-center"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            data-ocid="call.subtitles.panel"
-          >
-            <p className="text-white text-sm leading-relaxed">{subtitle}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Text input - always visible when connected */}
-      <AnimatePresence>
-        {phase === "connected" && (
-          <motion.div
-            className="w-full max-w-sm flex gap-2"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            transition={{ duration: 0.3 }}
-          >
-            <input
-              type="text"
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleTextSend()}
-              placeholder={`Type to ${companion.name}...`}
-              disabled={isThinking}
-              className="flex-1 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-white text-sm placeholder:text-white/30 outline-none focus:border-neon-cyan/60 disabled:opacity-40"
-            />
-            <button
-              type="button"
-              onClick={handleTextSend}
-              disabled={!textInput.trim() || isThinking}
-              className="w-10 h-10 rounded-full bg-neon-cyan/20 border border-neon-cyan/50 flex items-center justify-center disabled:opacity-30"
+      <div
+        className="w-full max-w-sm min-h-[72px] flex flex-col items-center justify-center gap-1.5"
+        data-ocid="call.subtitles.panel"
+      >
+        <AnimatePresence mode="wait">
+          {userSubtitle && (
+            <motion.p
+              key={`user-${userSubtitle}`}
+              className="text-neon-cyan text-xs text-right self-end"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
-              <Send className="w-4 h-4 text-neon-cyan" />
-            </button>
-          </motion.div>
+              You: {userSubtitle}
+            </motion.p>
+          )}
+        </AnimatePresence>
+        <AnimatePresence mode="wait">
+          {subtitle && !isListening && (
+            <motion.div
+              key={subtitle}
+              className="glass-card rounded-2xl px-5 py-3 w-full text-center"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <p className="text-foreground text-sm leading-relaxed">
+                {subtitle}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {isListening && (
+          <p className="text-neon-cyan text-sm animate-pulse">
+            Listening&#x2026;
+          </p>
         )}
-      </AnimatePresence>
+      </div>
+
+      {/* Text input — NEVER disabled by isSpeaking */}
+      <div className="w-full max-w-sm flex gap-2" data-ocid="call.text-input">
+        <input
+          type="text"
+          value={textInput}
+          onChange={(e) => setTextInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleTextSend()}
+          placeholder={`Type to ${companion.name}\u2026`}
+          // Only disabled while AI is fetching — NEVER blocked by isSpeaking
+          disabled={isThinking}
+          className="flex-1 bg-white/10 border border-white/20 rounded-full px-4 py-2.5 text-foreground text-sm placeholder:text-muted-neon outline-none focus:border-neon-cyan/60 disabled:opacity-40"
+        />
+        <button
+          type="button"
+          onClick={handleTextSend}
+          disabled={!textInput.trim() || isThinking}
+          className="w-11 h-11 rounded-full bg-neon-cyan/20 border border-neon-cyan/50 flex items-center justify-center disabled:opacity-30"
+          data-ocid="call.send.button"
+          aria-label="Send message"
+        >
+          <Send className="w-4 h-4 text-neon-cyan" />
+        </button>
+      </div>
 
       {/* Controls */}
-      <div className="flex flex-col items-center gap-4">
-        <div className="flex items-center gap-8">
+      <div className="flex items-center gap-8">
+        {/* Mute / unmute visual indicator only */}
+        <button
+          type="button"
+          className="w-14 h-14 rounded-full glass-card flex items-center justify-center transition-all"
+          aria-label="Mute"
+          data-ocid="call.mute.toggle"
+          onClick={() => {
+            /* visual only — mic toggle handled below */
+          }}
+        >
+          <Mic className="w-5 h-5 text-foreground" />
+        </button>
+
+        {/* End call */}
+        <button
+          type="button"
+          onClick={handleEndCall}
+          className="w-16 h-16 rounded-full bg-destructive flex items-center justify-center shadow-neon-pink hover:bg-destructive/80 transition-all"
+          data-ocid="call.end.button"
+          aria-label="End call"
+        >
+          <PhoneOff className="w-6 h-6 text-destructive-foreground" />
+        </button>
+
+        {/* Speak button */}
+        <div className="flex flex-col items-center gap-1">
           <button
             type="button"
-            onClick={() => setIsMuted((v) => !v)}
+            onClick={handleMicPress}
+            disabled={isThinking || !isAvailable}
             className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-              isMuted ? "bg-white/10 border border-white/20" : "glass-card"
-            }`}
-            data-ocid="call.mute.toggle"
+              isListening
+                ? "bg-destructive/80 border border-destructive shadow-neon-pink scale-110"
+                : "glass-card"
+            } disabled:opacity-30`}
+            data-ocid="call.mic.button"
+            aria-label={isListening ? "Listening" : "Tap to speak"}
           >
-            {isMuted ? (
-              <MicOff className="w-5 h-5 text-white/50" />
+            {isListening ? (
+              <MicOff className="w-5 h-5 text-white" />
             ) : (
-              <Mic className="w-5 h-5 text-white" />
+              <Mic className="w-5 h-5 text-neon-cyan" />
             )}
           </button>
-
-          <button
-            type="button"
-            onClick={handleEndCall}
-            className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-neon-pink hover:bg-red-400 transition-all"
-            data-ocid="call.end.button"
-          >
-            <PhoneOff className="w-6 h-6 text-white" />
-          </button>
-
-          <div className="flex flex-col items-center gap-1">
-            <button
-              type="button"
-              onClick={handleMicPress}
-              disabled={isThinking || phase === "ringing"}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                isListening
-                  ? "bg-red-500/80 border border-red-400 shadow-neon-pink"
-                  : "glass-card"
-              } disabled:opacity-30`}
-              data-ocid="call.mic.button"
-            >
-              <Mic
-                className={`w-5 h-5 ${
-                  isListening ? "text-white" : "text-neon-cyan"
-                }`}
-              />
-            </button>
-            {!isListening &&
-              !isSpeaking &&
-              !isThinking &&
-              phase === "connected" && (
-                <span className="text-white/40 text-xs">Tap to speak</span>
-              )}
-          </div>
+          {!isListening && !isThinking && isAvailable && (
+            <span className="text-muted-neon text-[10px]">Tap to speak</span>
+          )}
+          {!isAvailable && (
+            <span className="text-muted-neon text-[10px]">Type above</span>
+          )}
         </div>
       </div>
     </div>

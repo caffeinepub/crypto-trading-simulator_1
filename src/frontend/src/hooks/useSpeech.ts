@@ -1,6 +1,7 @@
 import type { Companion } from "@/lib/companions";
 import { useCallback, useRef } from "react";
 
+// ---------- SpeechRecognition type shim ----------
 type SpeechRecognitionCtor = new () => {
   continuous: boolean;
   interimResults: boolean;
@@ -23,10 +24,13 @@ declare global {
   }
 }
 
+// ---------- Helpers ----------
+
 /**
- * Speak text using browser SpeechSynthesis.
- * Guarantees onEnd() is always called (via timeout fallback) so isSpeaking
- * never gets permanently stuck.
+ * Speak text via browser SpeechSynthesis.
+ * Guarantees onEnd() is ALWAYS called (timeout fallback) so isSpeaking
+ * can never get stuck permanently.
+ *   - wordCount * 350 ms + 3 s buffer, clamped to [5 s, 12 s]
  */
 function browserSpeak(
   text: string,
@@ -40,33 +44,23 @@ function browserSpeak(
   }
 
   // Cancel anything currently playing
-  synth.cancel();
+  try {
+    synth.cancel();
+  } catch {
+    /* ignore */
+  }
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = companion.speechRate ?? 0.9;
   utterance.pitch = companion.speechPitch ?? 1.0;
   utterance.volume = 1;
 
-  // Guaranteed timeout: if onend never fires, resolve anyway after
-  // estimated duration (100ms per word) + 3s buffer
+  // Guaranteed timeout: resolves even if onend never fires
   const wordCount = text.split(/\s+/).length;
-  const timeoutMs = Math.max(5000, wordCount * 350 + 3000);
+  const timeoutMs = Math.min(12000, Math.max(5000, wordCount * 350 + 3000));
   let ended = false;
-  const guardTimer = setTimeout(() => {
-    if (!ended) {
-      ended = true;
-      onEnd?.();
-    }
-  }, timeoutMs);
 
-  utterance.onend = () => {
-    if (!ended) {
-      ended = true;
-      clearTimeout(guardTimer);
-      onEnd?.();
-    }
-  };
-  utterance.onerror = () => {
+  const finish = () => {
     if (!ended) {
       ended = true;
       clearTimeout(guardTimer);
@@ -74,10 +68,13 @@ function browserSpeak(
     }
   };
 
-  const trySpeak = () => {
+  const guardTimer = setTimeout(finish, timeoutMs);
+  utterance.onend = finish;
+  utterance.onerror = finish;
+
+  const doSpeak = () => {
     const voices = synth.getVoices();
     if (voices.length > 0) {
-      // Pick a voice matching gender preference
       const preferred = voices.find((v) =>
         companion.voiceGender === "female"
           ? v.name.includes("Samantha") ||
@@ -96,33 +93,29 @@ function browserSpeak(
     try {
       synth.speak(utterance);
     } catch {
-      if (!ended) {
-        ended = true;
-        clearTimeout(guardTimer);
-        onEnd?.();
-      }
+      finish();
     }
   };
 
   const voices = synth.getVoices();
   if (voices.length > 0) {
-    trySpeak();
+    doSpeak();
   } else {
-    synth.addEventListener("voiceschanged", trySpeak, { once: true });
-    // Fallback: try anyway after 500ms even if voiceschanged never fires
+    // voiceschanged fires asynchronously; fallback after 600 ms just in case
+    synth.addEventListener("voiceschanged", doSpeak, { once: true });
     setTimeout(() => {
-      if (!synth.speaking && !ended) {
-        trySpeak();
-      }
-    }, 500);
+      if (!synth.speaking && !ended) doSpeak();
+    }, 600);
   }
 }
+
+// ---------- Hooks ----------
 
 export function useSpeech() {
   const speakingRef = useRef(false);
 
   const speak = useCallback(
-    async (text: string, companion: Companion, onEnd?: () => void) => {
+    (text: string, companion: Companion, onEnd?: () => void) => {
       speakingRef.current = true;
       browserSpeak(text, companion, () => {
         speakingRef.current = false;
@@ -136,14 +129,13 @@ export function useSpeech() {
     try {
       window.speechSynthesis?.cancel();
     } catch {
-      // ignore
+      /* ignore */
     }
     speakingRef.current = false;
   }, []);
 
-  const isSpeakingNow = useCallback(() => {
-    return speakingRef.current;
-  }, []);
+  /** Returns true while the companion is speaking */
+  const isSpeakingNow = useCallback(() => speakingRef.current, []);
 
   return { speak, stop, isSpeaking: isSpeakingNow };
 }
@@ -151,6 +143,7 @@ export function useSpeech() {
 export function useVoiceRecognition() {
   const recognitionRef = useRef<{ stop(): void } | null>(null);
   const resultDispatchedRef = useRef(false);
+
   const isAvailable =
     typeof window !== "undefined" &&
     !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -185,8 +178,11 @@ export function useVoiceRecognition() {
           }
         };
 
+        // CRITICAL: onend fires when the browser finishes listening.
+        // Without this, the app hangs in "Listening..." and never sends the message.
         recognition.onend = () => {
           if (!resultDispatchedRef.current) {
+            // No result captured — fall back to text input
             onError?.();
           }
         };
@@ -210,7 +206,7 @@ export function useVoiceRecognition() {
     try {
       recognitionRef.current?.stop();
     } catch {
-      // ignore
+      /* ignore */
     }
   }, []);
 

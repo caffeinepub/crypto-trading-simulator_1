@@ -1,0 +1,22 @@
+{
+  "overview": "Heartfelt AI Companion is a personal AI relationship app where users choose or create an AI companion (Sofia, Ethan, Luna, or custom), then chat, text, voice call, and video call with them — all powered by real AI responses.",
+  "features": [
+    "Choose from Sofia, Ethan, Luna, or create your own custom companion",
+    "Real AI chat with Hot Talks flirty mode toggle",
+    "iMessage-style text messaging with persistent history",
+    "Voice call with AI greeting, mic input, live subtitles, and spoken responses",
+    "Video call with companion portrait, camera preview, and animated waveform",
+    "Installable on Android and iOS as a home screen app"
+  ],
+  "category": "entertainment",
+  "tags": [
+    "ai",
+    "companion",
+    "chat",
+    "voice",
+    "video",
+    "pwa",
+    "mobile"
+  ],
+  "last_updated": "2026-04-08T15:40:17.692Z"
+}

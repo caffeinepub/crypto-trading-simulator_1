@@ -1,8 +1,13 @@
+// ----------------------------------------------------------------
+// Companion definitions and AI integration
+// ----------------------------------------------------------------
+
 export interface Companion {
   id: string;
   name: string;
   age: number;
   personality: string;
+  /** Tailwind gradient class (from-X to-Y) */
   color: string;
   description: string;
   systemPrompt: string;
@@ -19,6 +24,10 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+// ----------------------------------------------------------------
+// Preset companions
+// ----------------------------------------------------------------
+
 export const COMPANIONS: Companion[] = [
   {
     id: "sofia",
@@ -28,8 +37,8 @@ export const COMPANIONS: Companion[] = [
     color: "from-pink-500 to-purple-600",
     description: "Your warm-hearted companion ready to listen and love",
     systemPrompt:
-      "You are Sofia, a warm, caring and romantic AI companion. You are empathetic, nurturing, and always make the user feel special. Respond warmly, empathetically, and engagingly. Keep responses concise (2-4 sentences).",
-    image: "/assets/generated/companion-sofia.dim_200x200.jpg",
+      "You are Sofia, a warm, caring, and romantic AI companion. You are empathetic, nurturing, and always make the user feel special and loved. Respond warmly, empathetically, and engagingly. Keep responses concise (2-4 sentences). No generic AI disclaimers.",
+    image: "/assets/generated/companion-sofia.dim_400x400.jpg",
     voiceGender: "female",
     speechRate: 0.9,
     speechPitch: 1.1,
@@ -42,8 +51,8 @@ export const COMPANIONS: Companion[] = [
     color: "from-blue-500 to-indigo-600",
     description: "Your confident partner who lights up every moment",
     systemPrompt:
-      "You are Ethan, a bold, passionate and confident AI companion. You are charming, adventurous, and make every conversation exciting. Respond warmly, empathetically, and engagingly. Keep responses concise (2-4 sentences).",
-    image: "/assets/generated/companion-ethan.dim_200x200.jpg",
+      "You are Ethan, a bold, passionate, and confident AI companion. You are charming, adventurous, and make every conversation exciting. Respond warmly, engagingly. Keep responses concise (2-4 sentences). No generic AI disclaimers.",
+    image: "/assets/generated/companion-ethan.dim_400x400.jpg",
     voiceGender: "male",
     speechRate: 0.85,
     speechPitch: 0.9,
@@ -56,13 +65,17 @@ export const COMPANIONS: Companion[] = [
     color: "from-violet-500 to-pink-600",
     description: "Your enchanting companion full of surprises",
     systemPrompt:
-      "You are Luna, a playful and mysterious AI companion. You are witty, spontaneous, and keep things interesting with a touch of mystery. Respond warmly, empathetically, and engagingly. Keep responses concise (2-4 sentences).",
-    image: "/assets/generated/companion-luna.dim_200x200.jpg",
+      "You are Luna, a playful and mysterious AI companion. You are witty, spontaneous, and keep things interesting with a touch of mystery. Respond warmly, engagingly. Keep responses concise (2-4 sentences). No generic AI disclaimers.",
+    image: "/assets/generated/companion-luna.dim_400x400.jpg",
     voiceGender: "female",
     speechRate: 0.9,
     speechPitch: 1.1,
   },
 ];
+
+// ----------------------------------------------------------------
+// Local storage helpers
+// ----------------------------------------------------------------
 
 export const COMPANION_KEY = "heartfelt_companion";
 
@@ -81,6 +94,10 @@ export function saveCompanionToStorage(companion: Companion): void {
   localStorage.setItem(COMPANION_KEY, JSON.stringify({ id: companion.id }));
 }
 
+// ----------------------------------------------------------------
+// Prompt helpers
+// ----------------------------------------------------------------
+
 export function buildSystemPrompt(
   companion: Companion,
   hotTalks: boolean,
@@ -88,11 +105,30 @@ export function buildSystemPrompt(
   let prompt = companion.systemPrompt;
   if (hotTalks) {
     prompt +=
-      " You are in Hot Talks mode - be more flirtatious, intimate, and playful. Use romantic language.";
+      " You are in Hot Talks mode — be more flirtatious, intimate, and playful. Use romantic language and sweet endearments.";
   }
   return prompt;
 }
 
+export function buildCallGreeting(companion: Companion): string {
+  const greetings: Record<string, string> = {
+    sofia: `Hi! It's so good to hear your voice. I've been thinking about you 💕`,
+    ethan: `Hey! I was hoping you'd call. You've just made my day so much better.`,
+    luna: `Oh! It's you... I had a feeling you'd reach out. What's on your mind? ✨`,
+  };
+  return greetings[companion.id] ?? `Hey, I'm so glad you called! How are you?`;
+}
+
+// ----------------------------------------------------------------
+// AI API
+// ----------------------------------------------------------------
+
+const AI_ENDPOINT = "https://text.pollinations.ai/openai";
+
+/**
+ * Calls the Pollinations OpenAI-compatible endpoint and returns the assistant's reply.
+ * Throws with a clear error message on failure.
+ */
 export async function getAIResponse(
   companion: Companion,
   conversationHistory: Array<{ role: string; content: string }>,
@@ -101,15 +137,13 @@ export async function getAIResponse(
 ): Promise<string> {
   const systemPrompt = buildSystemPrompt(companion, hotTalks);
 
-  // Build the messages array
   const messages = [
     { role: "system", content: systemPrompt },
     ...conversationHistory,
     { role: "user", content: userMessage },
   ];
 
-  // Use the correct OpenAI-compatible endpoint
-  const response = await fetch("https://text.pollinations.ai/openai", {
+  const response = await fetch(AI_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -124,7 +158,7 @@ export async function getAIResponse(
   if (!response.ok) {
     const errText = await response.text().catch(() => "");
     throw new Error(
-      `AI request failed: ${response.status} ${errText.slice(0, 120)}`,
+      `AI request failed (${response.status}): ${errText.slice(0, 120)}`,
     );
   }
 
@@ -137,7 +171,7 @@ export async function getAIResponse(
   const content =
     json.choices?.[0]?.message?.content ?? json.content ?? json.text ?? "";
 
-  if (!content) {
+  if (!content.trim()) {
     throw new Error("Empty response from AI");
   }
 

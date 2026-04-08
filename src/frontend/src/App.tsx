@@ -3,6 +3,7 @@ import CallPage from "@/pages/CallPage";
 import ChatPage from "@/pages/ChatPage";
 import LandingPage from "@/pages/LandingPage";
 import MessagesPage from "@/pages/MessagesPage";
+import OnboardingPage from "@/pages/OnboardingPage";
 import SelectPage from "@/pages/SelectPage";
 import VideoPage from "@/pages/VideoPage";
 import {
@@ -21,6 +22,12 @@ const landingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: LandingPage,
+});
+
+const onboardingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/onboarding",
+  component: OnboardingPage,
 });
 
 const selectRoute = createRoute({
@@ -55,6 +62,7 @@ const videoRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   landingRoute,
+  onboardingRoute,
   selectRoute,
   chatRoute,
   messagesRoute,
@@ -74,7 +82,7 @@ export default function App() {
   return (
     <>
       <RouterProvider router={router} />
-      <Toaster />
+      <Toaster richColors position="top-center" />
     </>
   );
 }

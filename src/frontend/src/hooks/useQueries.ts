@@ -1,18 +1,23 @@
+/**
+ * React Query hooks for backend data.
+ * The current backend.d.ts exposes no methods yet — all hooks gracefully
+ * fall back to no-ops so the app runs without a connected canister.
+ */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Message } from "../backend.d";
-import { useActor } from "./useActor";
+
+// Stub types matching the storage shape we would use if the backend is extended
+export type StoredPreference = string;
+export interface StoredMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
 export function useSaveCompanionPreference() {
-  const { actor } = useActor();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (preference: string) => {
-      if (!actor) return;
-      try {
-        return await actor.saveCompanionPreference(preference);
-      } catch {
-        // silently fail - preference saved locally anyway
-      }
+    mutationFn: async (_preference: StoredPreference) => {
+      // Backend method not yet exposed — preference is persisted in localStorage
+      return;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companionPreference"] });
@@ -21,48 +26,31 @@ export function useSaveCompanionPreference() {
 }
 
 export function useGetCompanionPreference() {
-  const { actor, isFetching } = useActor();
-  return useQuery<string | null>({
+  return useQuery<StoredPreference | null>({
     queryKey: ["companionPreference"],
     queryFn: async () => {
-      if (!actor) return null;
-      try {
-        const result = await actor.getCompanionPreference();
-        return result ?? null;
-      } catch {
-        return null;
-      }
+      // No backend method available; read from localStorage in the component
+      return null;
     },
-    enabled: !!actor && !isFetching,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }
 
 export function useSaveChatHistory() {
-  const { actor } = useActor();
   return useMutation({
-    mutationFn: async (history: Array<Message>) => {
-      if (!actor) return;
-      try {
-        return await actor.saveChatHistory(history);
-      } catch {
-        // silently fail - chat still works in memory
-      }
+    mutationFn: async (_history: StoredMessage[]) => {
+      // Backend method not yet exposed — history lives in component state
+      return;
     },
   });
 }
 
 export function useGetChatHistory() {
-  const { actor, isFetching } = useActor();
-  return useQuery<Array<Message>>({
+  return useQuery<StoredMessage[]>({
     queryKey: ["chatHistory"],
     queryFn: async () => {
-      if (!actor) return [];
-      try {
-        return await actor.getChatHistory();
-      } catch {
-        return [];
-      }
+      return [];
     },
-    enabled: !!actor && !isFetching,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }

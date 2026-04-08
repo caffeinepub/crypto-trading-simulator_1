@@ -1,25 +1,49 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Viewport: viewport-fit=cover lets the app extend behind notches/home bars -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+
+    <title>Heartfelt AI Companion</title>
+    <meta
+      name="description"
+      content="Your personal AI companion — chat, call, and connect anytime."
+    />
+
+    <!-- Theme color matches dark background -->
+    <meta name="theme-color" content="#0d0b18" />
+    <meta name="msapplication-TileColor" content="#0d0b18" />
+
+    <!-- PWA / home screen install -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- iOS-specific PWA meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Heartfelt" />
-    <meta name="theme-color" content="#06080f" />
-    <meta name="description" content="Heartfelt AI Companion — real AI chat, voice calls, and video calls with your personal AI companion." />
-    <!-- Open Graph -->
-    <meta property="og:title" content="Heartfelt AI Companion" />
-    <meta property="og:description" content="Connect with your AI soulmate through chat, voice, and video." />
-    <meta property="og:type" content="website" />
-    <!-- PWA manifest -->
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <!-- Apple touch icon -->
     <link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
-    <title>Heartfelt — AI Companion</title>
-    <script type="module" crossorigin src="/assets/index-CLgewCVW.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DmOvEXKL.css">
+
+    <!-- Android Chrome splash screen -->
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- OG / Twitter -->
+    <meta property="og:title" content="Heartfelt AI Companion" />
+    <meta
+      property="og:description"
+      content="Your personal AI companion — chat, call, and connect anytime."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <script type="module" crossorigin src="/assets/index-DrIubD2r.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-j2vDQvkV.css">
   </head>
   <body>
     <div id="root"></div>
