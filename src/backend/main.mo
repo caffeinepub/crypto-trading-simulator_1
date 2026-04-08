@@ -1,8 +1,8 @@
 import Principal "mo:core/Principal";
 import Map "mo:core/Map";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
 actor {
   // Persistent user data - keyed by Principal (works for anonymous users too)
   let companionPreferences = Map.empty<Principal, Text>();

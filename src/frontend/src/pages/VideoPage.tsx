@@ -1,3 +1,4 @@
+import TalkingAvatar from "@/components/TalkingAvatar";
 import { useSpeech, useVoiceRecognition } from "@/hooks/useSpeech";
 import {
   type Companion,
@@ -8,7 +9,13 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { Camera, CameraOff, Mic, MicOff, PhoneOff, Send } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 function WaveformOverlay({ active }: { active: boolean }) {
   if (!active) return null;
@@ -55,6 +62,82 @@ function CallTimer({ startTime }: { startTime: number }) {
   );
 }
 
+// ─── Draggable PiP wrapper ────────────────────────────────────────────────────
+interface DraggablePiPProps {
+  children: React.ReactNode;
+}
+
+function DraggablePiP({ children }: DraggablePiPProps) {
+  // Start anchored bottom-right (positive offset from bottom-right corner)
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+  } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Initialize position anchored to bottom-right on first render
+  useEffect(() => {
+    if (pos === null) {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      setPos({ x: W - 96 - 16, y: H - 128 - 80 });
+    }
+  }, [pos]);
+
+  const onPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      dragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        origX: pos?.x ?? 0,
+        origY: pos?.y ?? 0,
+      };
+    },
+    [pos],
+  );
+
+  const onPointerMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    const newX = dragRef.current.origX + dx;
+    const newY = dragRef.current.origY + dy;
+    // Clamp to viewport (96×128 PiP size)
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    setPos({
+      x: Math.max(0, Math.min(W - 96, newX)),
+      y: Math.max(0, Math.min(H - 128, newY)),
+    });
+  }, []);
+
+  const onPointerUp = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    dragRef.current = null;
+  }, []);
+
+  if (pos === null) return null;
+
+  return (
+    <div
+      ref={containerRef}
+      className="fixed z-40 w-24 h-32 rounded-2xl overflow-hidden border border-white/25 bg-black shadow-glass cursor-grab active:cursor-grabbing select-none touch-none"
+      style={{ left: pos.x, top: pos.y }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      data-ocid="video.pip.panel"
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function VideoPage() {
   const navigate = useNavigate();
   const { speak, stop } = useSpeech();
@@ -142,7 +225,6 @@ export default function VideoPage() {
     setCameraOn(false);
   }, []);
 
-  // Greet immediately with buildCallGreeting — no delay, no API fetch
   useEffect(() => {
     const comp = getCompanionFromStorage();
     if (!comp) {
@@ -239,7 +321,7 @@ export default function VideoPage() {
         background: "linear-gradient(180deg, #06080f 0%, #0d0619 100%)",
       }}
     >
-      {/* === COMPANION FULL PORTRAIT (background layer) === */}
+      {/* === ANIMATED TALKING AVATAR (background layer) === */}
       <div
         className="absolute inset-0 flex items-center justify-center"
         data-ocid="video.companion.panel"
@@ -249,30 +331,43 @@ export default function VideoPage() {
         }}
       >
         <div
-          className="relative overflow-hidden rounded-3xl shadow-2xl"
+          className="relative overflow-visible flex flex-col items-center justify-center"
           style={{ width: "min(380px, 90vw)", height: "72vh" }}
         >
-          {/* Ring overlay */}
+          {/* Speaking ring glow behind avatar */}
           <div
-            className={`absolute inset-0 rounded-3xl z-10 pointer-events-none ${isSpeaking ? "ring-pulse-speaking" : "ring-pulse"}`}
+            className={`absolute inset-0 rounded-3xl z-0 pointer-events-none ${
+              isSpeaking ? "ring-pulse-speaking" : "ring-pulse"
+            }`}
+            style={{ borderRadius: "50% 50% 50% 50% / 40% 40% 60% 60%" }}
           />
 
-          {/* Companion image — full portrait */}
-          {companion.image ? (
-            <img
-              src={companion.image}
-              alt={companion.name}
-              className="w-full h-full object-cover object-top"
+          {/* Animated SVG avatar */}
+          <motion.div
+            className="relative z-10 flex items-center justify-center"
+            animate={
+              isSpeaking
+                ? { scale: [1, 1.02, 0.99, 1.01, 1], y: [0, -2, 1, -1, 0] }
+                : { scale: 1, y: 0 }
+            }
+            transition={
+              isSpeaking
+                ? {
+                    duration: 0.6,
+                    repeat: Number.POSITIVE_INFINITY,
+                    ease: "easeInOut",
+                  }
+                : { duration: 0.4 }
+            }
+          >
+            <TalkingAvatar
+              companionId={companion.id}
+              companionName={companion.name}
+              companionColor={companion.color}
+              isSpeaking={isSpeaking}
+              size={Math.min(300, Math.round(window.innerWidth * 0.72))}
             />
-          ) : (
-            <div
-              className={`w-full h-full bg-gradient-to-br ${companion.color} flex items-center justify-center`}
-            >
-              <span className="text-[120px] font-bold text-white/80 select-none">
-                {companion.name[0]}
-              </span>
-            </div>
-          )}
+          </motion.div>
 
           {/* Gradient overlay at bottom for text/controls legibility */}
           <div
@@ -384,7 +479,6 @@ export default function VideoPage() {
           onChange={(e) => setTextInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleTextSend()}
           placeholder={`Type to ${companion.name}\u2026`}
-          // Only disabled while fetching AI — NEVER blocked by isSpeaking
           disabled={isThinking}
           className="flex-1 bg-black/60 border border-white/20 rounded-full px-4 py-2.5 text-white text-sm placeholder:text-white/30 outline-none focus:border-neon-cyan/60 disabled:opacity-40"
         />
@@ -400,14 +494,8 @@ export default function VideoPage() {
         </button>
       </div>
 
-      {/* === PiP USER CAMERA — bottom-right === */}
-      <div
-        className="absolute right-4 z-40 w-24 h-32 rounded-2xl overflow-hidden border border-white/25 bg-black shadow-glass"
-        style={{
-          bottom: "max(5rem, calc(env(safe-area-inset-bottom, 0px) + 4rem))",
-        }}
-        data-ocid="video.pip.panel"
-      >
+      {/* === PiP USER CAMERA — fully draggable === */}
+      <DraggablePiP>
         {cameraOn ? (
           <video
             ref={videoRef}
@@ -422,7 +510,7 @@ export default function VideoPage() {
             <CameraOff className="w-5 h-5 text-white/30" />
           </div>
         )}
-      </div>
+      </DraggablePiP>
 
       {/* === CONTROLS === */}
       <div
